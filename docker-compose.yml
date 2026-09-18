@@ -1,0 +1,66 @@
+# Local backend for development.
+#
+# PORTS ARE DELIBERATELY NON-DEFAULT. This machine already runs Postgres on 5432
+# and 5433 and MinIO-ish services on 9000/9001 for other projects, so the defaults
+# would either fail to bind or -- much worse -- appear to work while the API talked
+# to another project's database.
+#
+# WHY THESE TWO SERVICES: both are stand-ins for managed AWS equivalents, chosen
+# because they speak the same wire protocols:
+#   postgres -> RDS Postgres  (same driver, same SQL, connection string swap)
+#   minio    -> S3            (same API; the server uses @aws-sdk/client-s3 against
+#                              both, so moving is a matter of env vars)
+# Nothing in the application code knows which one it is talking to.
+
+name: knitclose
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: knitclose-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: knitclose
+      POSTGRES_PASSWORD: knitclose_dev_only
+      POSTGRES_DB: knitclose
+      # Deterministic collation, so ORDER BY matches between a dev machine and RDS.
+      LANG: C.UTF-8
+    ports:
+      - "5434:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # The API's migration step runs the moment this reports healthy, so this must
+      # test real query readiness, not just that the port is open.
+      test: ["CMD-SHELL", "pg_isready -U knitclose -d knitclose -q"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  minio:
+    image: minio/minio:latest
+    container_name: knitclose-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9003"
+    environment:
+      MINIO_ROOT_USER: knitclose
+      MINIO_ROOT_PASSWORD: knitclose_dev_only
+      # Presigned URLs must be signed for the hostname the phone will actually
+      # request. See STORAGE_PUBLIC_URL in the API config.
+      MINIO_REGION: us-east-1
+    ports:
+      - "9002:9000"   # S3 API
+      - "9003:9003"   # web console (browse uploaded media while developing)
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+volumes:
+  db_data:
+  minio_data:

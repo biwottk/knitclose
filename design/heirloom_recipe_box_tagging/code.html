@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container-high": "#f0e6e1", "on-secondary-fixed-variant": "#822801", "on-surface": "#1f1b18", "primary-fixed": "#caeada", "error": "#ba1a1a", "inverse-on-surface": "#f8efea", "on-primary": "#ffffff", "surface-container": "#f5ece7", "surface-variant": "#eae1dc", "surface": "#fff8f5", "on-tertiary": "#ffffff", "inverse-primary": "#aecebe", "secondary": "#a23e18", "on-tertiary-fixed-variant": "#604100", "on-background": "#1f1b18", "tertiary-fixed": "#ffdeae", "on-surface-variant": "#424844", "tertiary": "#2d1c00", "on-secondary": "#ffffff", "on-secondary-fixed": "#390c00", "surface-dim": "#e1d8d3", "secondary-fixed-dim": "#ffb59c", "on-error": "#ffffff", "error-container": "#ffdad6", "surface-container-low": "#fbf2ed", "on-tertiary-fixed": "#281900", "surface-tint": "#486458", "tertiary-container": "#493000", "on-error-container": "#93000a", "inverse-surface": "#34302c", "secondary-fixed": "#ffdbcf", "outline-variant": "#c1c8c3", "on-secondary-container": "#6f2000", "on-primary-container": "#86a496", "primary-fixed-dim": "#aecebe", "tertiary-fixed-dim": "#fdba45", "surface-container-highest": "#eae1dc", "surface-container-lowest": "#ffffff", "surface-bright": "#fff8f5", "on-primary-fixed": "#032017", "on-tertiary-container": "#cf921c", "on-primary-fixed-variant": "#304c41", "outline": "#727974", "background": "#fff8f5", "secondary-container": "#fe8357", "primary": "#07241a", "primary-container": "#1e3a2f" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "gutter": "1rem", "gutter-md": "1.5rem", "margin-lg": "3rem", "space-xl": "2rem", "space-xs": "0.25rem", "space-md": "1rem", "margin": "1rem", "space-sm": "0.5rem", "margin-md": "2rem", "gutter-lg": "2rem" }, "fontFamily": { "story-callout": [ "Merriweather" ], "label-md": [ "Inter" ], "headline-lg": [ "Merriweather" ], "body-lg": [ "Inter" ], "body-md": [ "Inter" ], "headline-md": [ "Merriweather" ], "headline-lg-mobile": [ "Merriweather" ], "label-sm": [ "Inter" ], "label-lg": [ "Inter" ], "body-sm": [ "Inter" ], "headline-xl": [ "Merriweather" ], "headline-xl-mobile": [ "Merriweather" ] }, "fontSize": { "story-callout": [ "18px", { "lineHeight": "32px", "fontWeight": "400" } ], "label-md": [ "14px", { "lineHeight": "18px", "fontWeight": "600" } ], "headline-lg": [ "28px", { "lineHeight": "40px", "fontWeight": "700" } ], "body-lg": [ "18px", { "lineHeight": "28px", "fontWeight": "400" } ], "body-md": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ], "headline-md": [ "20px", { "lineHeight": "30px", "fontWeight": "700" } ], "headline-lg-mobile": [ "22px", { "lineHeight": "32px", "fontWeight": "700" } ], "label-sm": [ "12px", { "lineHeight": "16px", "fontWeight": "600" } ], "label-lg": [ "16px", { "lineHeight": "22px", "fontWeight": "600" } ], "body-sm": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "headline-xl": [ "36px", { "lineHeight": "48px", "fontWeight": "700" } ], "headline-xl-mobile": [ "28px", { "lineHeight": "38px", "fontWeight": "700" } ] } } } }</script></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-secondary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="Close Knit Emblem" class="h-8 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPJ1HDfoeBLMrPE_hM-3_U3PbZYKJAWmwjShjRVpE0oNNvveE8R4axPdjNSIotpBfTJ3PbzCe8LQfzWbQsC_iIhOzw7xYBeC6RskRKOCxJ-ZstEpjE6uBx4Iv7INN04a6d5QUMc0qV1Z0juv7RnAIkT153ML1kSCRxjEFFP-BcLTHr9ju21c7BQwQoEtCINjIm9LMBWCrRzup3XDBy-PLhn3pe7U3RGs-lDUb5QnBzcM3arC5aNclL"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-1"><span class="font-headline-md text-headline-md text-primary font-bold tracking-tight truncate">Close Knit</span><span class="font-label-sm text-label-sm text-secondary-container font-semibold">•</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">Archive</span></div><button class="flex items-center gap-1 text-left min-h-[24px] group"><span class="font-label-sm text-label-sm text-on-surface font-semibold truncate group-hover:text-secondary transition-colors">The Miller Family Circle</span><span class="material-symbols-outlined text-secondary text-sm shrink-0">expand_more</span></button></div></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Voice Prompt or Quick Audio" class="w-12 h-12 rounded-full flex items-center justify-center text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-2xl">mic</span></button><button aria-label="Nana Ruth Profile and Settings" class="w-12 h-12 rounded-full p-1 flex items-center justify-center relative hover:bg-surface-container transition-colors"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-GBZvbaRkG2VpT-7t84Ef_phzop8oF8cTnWULu-kzOBA1DwQNlmWt4hR5rCouUs4X0JShB4WniVh9NGbRwFSV0TH94l7fS5xS046xD4xu9E7yuKhDq8rmehBYpjJfG6YMpYZet-3vr32iWurSRjbUtBGeDE64w_lkDucuI23sXoW0a99vYsAKAG8tCTIhcuXqPqQSeY2PvdTHM1mfS6fVBStAdGavxfZA5n_iGU1-eD1VOiKrvgMG"/><span class="absolute bottom-1.5 right-1.5 w-3 h-3 bg-secondary rounded-full ring-2 ring-surface"></span></button></div></div></header><main class="flex flex-col relative w-full pt-20 pb-28 px-margin bg-surface flex-1"><div class="flex flex-col w-full space-y-space-lg">
+<!-- Segmented Heirloom Switcher -->
+<div class="w-full bg-surface-container-high p-1.5 rounded-xl shadow-sm">
+<div class="grid grid-cols-2 gap-1 relative" role="tablist">
+<button aria-selected="true" class="flex items-center justify-center gap-1.5 py-3 px-3 rounded-lg bg-surface text-primary shadow-sm transition-all duration-200" id="tab-recipes" onclick="switchView('recipes')" role="tab">
+<span class="material-symbols-outlined text-[18px] text-secondary" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="font-label-md text-label-md truncate">Recipe Box</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded-full font-label-sm text-label-sm">28</span>
+</button>
+<button aria-selected="false" class="flex items-center justify-center gap-1.5 py-3 px-3 rounded-lg text-on-surface-variant hover:text-on-surface transition-all duration-200" id="tab-photos" onclick="switchView('photos')" role="tab">
+<span class="material-symbols-outlined text-[18px]">photo_camera_front</span>
+<span class="font-label-md text-label-md truncate">Who Is This?</span>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded-full font-label-sm text-label-sm">5</span>
+</button>
+</div>
+</div>
+<!-- VIEW 1: RECIPE BOX -->
+<div class="flex flex-col space-y-space-md" id="view-recipes">
+<!-- Warm Emotional Notice -->
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary-container animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">Generations In The Oven</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold">Leeds, UK • 1968</span>
+</div>
+<!-- Main Heirloom Featured Card -->
+<article class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden flex flex-col">
+<!-- Split Media Vignette: Finished Bread & Original Scrappy Note Card -->
+<div class="relative w-full h-64 bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close up artisanal food photography of golden brown Swedish style braided cardamom bread dusted with pearl sugar on an aged rustic linen cloth, warm soft morning kitchen sunlight, steam rising gently, editorial culinary style in muted natural tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOlZzMwiru-KD4ZsHcrW5V3lV9u1MuphOCMLwI3PrBGpqPo4XuueXYeNPPNa9dJctkRi_XLIUzQueeI1DV1OHr9omJ_PUyP7WewMxX4af1vUcpUeX1Hqf4Gc5GoR69LH4khxfOyA_MF2lYgWDFPvAZdEQIF9Y9RbEcHmyfyAlgXO8yp3spqX-NliCJ5DKNUA6f2Pu6DpEbXvh99Tf5PJL_3uXAVhvRst7EDq_rA2JQmwnCt5GPd3Ur"/>
+<!-- Original Handwritten Index Card Overlay Badge -->
+<div class="absolute bottom-3 right-3 w-28 h-20 rounded-lg overflow-hidden shadow-lg bg-surface-container-high p-1 transform rotate-1 transition-transform hover:rotate-0">
+<img class="w-full h-full object-cover rounded" data-alt="Vintage yellowed 1960s index card with smudged fountain pen handwritten cursive recipe script for braided bread, grease spots from melted butter on aged lined paper, high resolution tactile archival macro shot." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyJ5O7glYmwTQkvorFNZg93DGRuyHUXO-ZSFRhdPygid4SlFSYfzKsqVTpisHEnRhY6YW0PIAHKs6UdIHh73WcC3Gbl7YLIUX_qJjLiCpjc-tPmwFfDIPiBXiRyXzNfywenIzX4r00TxsHohPjtBp-J8mhsXPPTuzym0EaM-m8liNfHLHZTYKZWOiMPNtBPj2_7oK3ly_V2vdJucOmhRZsm0OXUs-4egcl6RqxEw32mEcRbK-o1MrK"/>
+<div class="absolute inset-x-1 bottom-1 bg-primary-container/85 backdrop-blur-sm rounded py-0.5 px-1 text-center">
+<span class="font-label-sm text-[10px] leading-none text-on-primary block truncate font-semibold">Aunt Clara's 1968 Card</span>
+</div>
+</div>
+<div class="absolute top-3 left-3 bg-surface/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-sm" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-label-sm text-label-sm text-on-surface">Sunday Tradition</span>
+</div>
+</div>
+<!-- Card Editorial Content -->
+<div class="p-space-md flex flex-col space-y-space-sm bg-surface-container-lowest">
+<div class="space-y-1">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary leading-tight">
+            Nana Ruth's Cardamom &amp; Apple Braided Bread
+          </h2>
+<p class="font-story-callout text-story-callout text-on-surface-variant italic leading-relaxed">
+            “Baked every Easter morning since 1968 in Leeds. The secret is double-cardamom pods ground by hand in the mortar, never pre-ground.”
+          </p>
+</div>
+<!-- Metadata Pill Row -->
+<div class="flex flex-wrap gap-1.5 pt-1">
+<div class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant text-base">timer</span>
+<span class="font-label-sm text-label-sm text-on-surface">Prep: 45m</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container px-3 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant text-base">bakery_dining</span>
+<span class="font-label-sm text-label-sm text-on-surface">Yield: 2 Loaves</span>
+</div>
+<div class="flex items-center gap-1 bg-secondary-fixed px-3 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-on-secondary-fixed text-base">mic</span>
+<span class="font-label-sm text-label-sm text-on-secondary-fixed">Voice Preserved</span>
+</div>
+</div>
+<!-- Dedicated Audio Playback Player Bar -->
+<div class="w-full bg-surface-container p-3 rounded-xl flex items-center gap-3 shadow-inner my-1">
+<button aria-label="Play dough proofing tip from Nana" class="w-12 h-12 shrink-0 rounded-full bg-primary text-on-primary flex items-center justify-center hover:bg-primary-container shadow-md transition-all active:scale-95" id="audio-play-btn" onclick="toggleAudio()">
+<span class="material-symbols-outlined text-2xl" id="audio-play-icon" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-1">
+<span class="font-label-md text-label-md text-on-surface truncate">Nana on proofing the dough</span>
+<span class="font-label-sm text-label-sm text-secondary font-semibold shrink-0 ml-2">0:48</span>
+</div>
+<!-- Tactile Waveform Bars -->
+<div class="flex items-center gap-0.5 h-5 w-full" id="waveform">
+<span class="h-2 w-1 rounded-full bg-primary/40"></span>
+<span class="h-3.5 w-1 rounded-full bg-primary/60"></span>
+<span class="h-5 w-1 rounded-full bg-secondary"></span>
+<span class="h-4 w-1 rounded-full bg-secondary"></span>
+<span class="h-2 w-1 rounded-full bg-primary/50"></span>
+<span class="h-3 w-1 rounded-full bg-primary/40"></span>
+<span class="h-4.5 w-1 rounded-full bg-primary/70"></span>
+<span class="h-5 w-1 rounded-full bg-secondary"></span>
+<span class="h-3 w-1 rounded-full bg-primary/40"></span>
+<span class="h-1.5 w-1 rounded-full bg-primary/30"></span>
+<span class="h-2 w-1 rounded-full bg-primary/30"></span>
+<span class="h-4 w-1 rounded-full bg-primary/50"></span>
+<span class="h-3.5 w-1 rounded-full bg-primary/40"></span>
+<span class="h-2 w-1 rounded-full bg-primary/20"></span>
+<span class="h-4 w-1 rounded-full bg-primary/30"></span>
+<span class="h-5 w-1 rounded-full bg-primary/40"></span>
+<span class="h-2 w-1 rounded-full bg-primary/20"></span>
+<span class="h-1.5 w-1 rounded-full bg-primary/20"></span>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="pt-2 flex flex-col space-y-2">
+<div class="grid grid-cols-2 gap-2">
+<button class="h-12 w-full rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-1.5 shadow-sm active:opacity-90">
+<span class="material-symbols-outlined text-[20px]">soup_kitchen</span>
+              Cook This Sunday
+            </button>
+<button class="h-12 w-full rounded-lg bg-surface-container text-on-surface font-label-md text-label-md flex items-center justify-center gap-1.5 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px] text-secondary">bookmark_border</span>
+              Save to Kitchen
+            </button>
+</div>
+<button class="h-11 w-full rounded-lg bg-surface-container-low text-on-surface-variant font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-surface-container hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-secondary text-[18px]">local_shipping</span>
+            Order Keepsake Embossed Print Card ($4.50)
+          </button>
+</div>
+</div>
+</article>
+<!-- Secondary Recipe Quick List Preview -->
+<div class="bg-surface-container-low p-space-md rounded-xl space-y-3">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-md text-headline-md text-primary">Other Cherished Heirlooms</h3>
+<button class="text-secondary font-label-sm text-label-sm font-semibold">View All 28</button>
+</div>
+<div class="space-y-2">
+<div class="bg-surface rounded-lg p-3 flex items-center gap-3 shadow-sm">
+<img class="w-14 h-14 rounded-lg object-cover shrink-0" data-alt="Golden baked rhubarb crumble in a vintage speckled enamel baking pan, powdered sugar dusted top, rustic cozy farmhouse aesthetic, close-up warm daylight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnMYvFpj49f2NgErfFCRHNtB3A05-hawmj_Hbo53oMOxpBJ6OCLOnPwi_GhM1ZO_o4-fnbYgS29fuIvI7igF43j44jcM9fFn3pri1IUYmS3cpy26EX9iILcXkeXvFI1O869tfDu7J2o2Xy96KCv0_riNzFFR3MjvaCn6fe1gpUyCfAxrEijuqIElO7nuaeNwDk2WkubKkXAzWix8YxDpL9IdY036VuwpDbH29PYS2HEOeYvB0rKZv8"/>
+<div class="flex-1 min-w-0">
+<h4 class="font-label-md text-label-md text-on-surface truncate">Great Grandma Ida's Rhubarb Crisp</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">With custard pouring notes • 1942</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant shrink-0 text-xl">chevron_right</span>
+</div>
+<div class="bg-surface rounded-lg p-3 flex items-center gap-3 shadow-sm">
+<img class="w-14 h-14 rounded-lg object-cover shrink-0" data-alt="Pot of dark savory slow-simmered beef stew with carrots and rosemary sprigs in a heavy cast iron dutch oven on a rustic wood board, hearty kitchen still life." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfA-jtroPLByxewjl9y6A6Rv54iSOkUJjjMzAtRfoVxDaFHbsKRGNrS2Hcd-nlp9TbB5LTL4UMLPQAhU18rXTtSS7CINgx0ivPNfeBHDpo1J1RS3D-2P6U6LKjCOJiihmDCbn7atA0nHIp6DalGyJLIaCoPTEJlZiq1qDHAxmO0AImh7s6jV5OaJP6euxPcKr0cZBgPi90rnvgCBQdaWa9QDOTaRM9CZ2fhAngbAbM3wm-GpJPcXWs"/>
+<div class="flex-1 min-w-0">
+<h4 class="font-label-md text-label-md text-on-surface truncate">Grampa Joe's Stout Beef Pot</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Voice tip recorded by Uncle Dave • 1981</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant shrink-0 text-xl">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- VIEW 2: RACE AGAINST TIME PHOTO TAGGING (Visible or Toggled) -->
+<section class="flex flex-col space-y-space-md" id="view-photos">
+<!-- Urgency Header -->
+<div class="bg-secondary-fixed/50 p-4 rounded-xl flex items-start gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary text-on-secondary shrink-0 flex items-center justify-center mt-0.5 shadow-sm">
+<span class="material-symbols-outlined text-xl">hourglass_top</span>
+</div>
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<h3 class="font-headline-md text-headline-md text-on-secondary-fixed leading-tight">Race Against Time</h3>
+<span class="bg-secondary text-on-secondary px-2 py-0.5 rounded-full font-label-sm text-[11px] font-bold">5 Unnamed</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-secondary-fixed-variant leading-relaxed">
+          Unlabeled photos fade from memory if we don't ask our elders today. Help Nana and Dave name the missing faces.
+        </p>
+</div>
+</div>
+<!-- Archival Mystery Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-md overflow-hidden flex flex-col">
+<!-- Vintage Photograph with Face Bounding Boxes & Tag Markers -->
+<div class="relative w-full h-80 bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Authentic vintage sepia gelatin silver family photograph from 1954 depicting three people standing outside a brick garden terrace in Leeds England: a young man in woolen vest, a little girl with a big silk hair bow holding a rag doll, and an older woman in floral apron smiling warmly. High grain, subtle paper creases, historical warmth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEc8BucPtW428A6oAQNXDEEipA9F0n8qx2Nx69AIrZdjVQ2U-Q_qxhNvz7qJ5Ms5nf3yrk9IY_-RijQC8DgqH418hDuJWOXoh2ONfnRHqoNqVUG7omC7VzAwFV6sTl5fF4uHNZHEdFGmOq9rEAANi6tQDdcfJfFe_FOS7mqTAWkVtH4YDNDmdAldvAFN0VY-NMp0Lxm6MVPqLF6HhQ5cRf-D2_zlKe0teEtDKQ0iSY_vWMh8OxDpHc"/>
+<!-- Soft vignette scrim -->
+<div class="absolute inset-0 bg-gradient-to-t from-primary/70 via-transparent to-primary/30"></div>
+<!-- Archival Source Tag -->
+<div class="absolute top-3 left-3 bg-primary-container/90 backdrop-blur-md px-3 py-1 rounded-full shadow-sm">
+<span class="font-label-sm text-label-sm text-on-primary">Found in Great Aunt Eleanor's attic box (c. 1954)</span>
+</div>
+<!-- Tag Pin 1: Guessed Uncle Arthur -->
+<div class="absolute top-16 left-8 flex flex-col items-center">
+<div class="w-11 h-11 rounded-full border-2 border-secondary-container bg-surface/90 flex items-center justify-center shadow-lg text-secondary font-bold text-sm">
+            ?
+          </div>
+<span class="mt-1 bg-surface/95 text-on-surface font-label-sm text-label-sm px-2 py-0.5 rounded-md shadow-md">
+            Uncle Arthur?
+          </span>
+</div>
+<!-- Tag Pin 2: Unknown girl with bow -->
+<div class="absolute top-28 right-16 flex flex-col items-center">
+<div class="w-11 h-11 rounded-full border-2 border-secondary-container bg-surface/90 flex items-center justify-center shadow-lg text-secondary font-bold text-sm animate-bounce">
+            ?
+          </div>
+<span class="mt-1 bg-surface/95 text-on-surface font-label-sm text-label-sm px-2 py-0.5 rounded-md shadow-md">
+            Girl with bow
+          </span>
+</div>
+<!-- Counter Indicator -->
+<div class="absolute bottom-3 right-3 bg-surface/90 backdrop-blur-md px-2.5 py-1 rounded-full text-on-surface font-label-sm text-label-sm">
+          Photo 1 of 5
+        </div>
+</div>
+<!-- Identification Prompt & Elders Audio Reply Module -->
+<div class="p-space-md flex flex-col space-y-space-sm bg-surface-container-lowest">
+<div class="space-y-1">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-base">psychology_alt</span>
+<span class="font-label-md text-label-md font-bold">Calling Nana Ruth or Uncle Dave</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-primary">
+            Do you recognize the young girl holding the calico ragdoll?
+          </h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Uncle Dave thought it might be Aunt Beth when she was six in Scarborough, but the dates on the back suggest Leeds.
+          </p>
+</div>
+<!-- Large Elder-Friendly Voice Capture CTA -->
+<div class="bg-surface-container p-4 rounded-xl space-y-3">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Speak your memory aloud:</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">No typing needed</span>
+</div>
+<button class="w-full h-14 rounded-xl bg-secondary hover:bg-on-secondary-container text-on-secondary font-label-lg text-label-lg flex items-center justify-center gap-3 shadow-md active:scale-98 transition-all" id="record-voice-btn" onclick="toggleRecordState()">
+<span class="material-symbols-outlined text-2xl animate-pulse" id="record-icon">mic</span>
+<span id="record-text">Record Voice Memory</span>
+</button>
+<div class="flex items-center justify-between pt-1 text-center">
+<button class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary py-2 px-3 rounded-lg bg-surface-container-high transition-colors">
+              Type Name Instead
+            </button>
+<button class="font-label-sm text-label-sm text-secondary font-semibold py-2 px-3 rounded-lg hover:bg-surface-container-high transition-colors">
+              Pass to Uncle Dave →
+            </button>
+</div>
+</div>
+<!-- Already Answered Voices List -->
+<div class="pt-1 space-y-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block">Family Clues Shared (2)</span>
+<div class="bg-surface-container-low p-2.5 rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-xs font-bold">NR</span>
+<div class="text-left">
+<span class="font-label-sm text-label-sm text-on-surface font-bold block">Nana Ruth (Yesterday)</span>
+<span class="font-body-sm text-xs text-on-surface-variant block">“That's definitely Clara's hair ribbon...”</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface flex items-center justify-center text-primary shadow-sm hover:bg-surface-container">
+<span class="material-symbols-outlined text-sm">play_arrow</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<script>
+  let isPlaying = false;
+  let isRecording = false;
+
+  function toggleAudio() {
+    isPlaying = !isPlaying;
+    const icon = document.getElementById('audio-play-icon');
+    const btn = document.getElementById('audio-play-btn');
+    if (isPlaying) {
+      icon.innerText = 'pause';
+      btn.classList.add('bg-secondary');
+      btn.classList.remove('bg-primary');
+    } else {
+      icon.innerText = 'play_arrow';
+      btn.classList.add('bg-primary');
+      btn.classList.remove('bg-secondary');
+    }
+  }
+
+  function toggleRecordState() {
+    isRecording = !isRecording;
+    const btn = document.getElementById('record-voice-btn');
+    const text = document.getElementById('record-text');
+    const icon = document.getElementById('record-icon');
+    
+    if (isRecording) {
+      text.innerText = 'Listening... Tap to finish';
+      btn.classList.remove('bg-secondary');
+      btn.classList.add('bg-error');
+      icon.innerText = 'radio_button_checked';
+    } else {
+      text.innerText = 'Memory Saved! Add Another';
+      btn.classList.remove('bg-error');
+      btn.classList.add('bg-primary');
+      icon.innerText = 'check_circle';
+      setTimeout(() => {
+        text.innerText = 'Record Voice Memory';
+        btn.classList.remove('bg-primary');
+        btn.classList.add('bg-secondary');
+        icon.innerText = 'mic';
+      }, 2500);
+    }
+  }
+
+  function switchView(view) {
+    const tabRecipes = document.getElementById('tab-recipes');
+    const tabPhotos = document.getElementById('tab-photos');
+    const viewRecipes = document.getElementById('view-recipes');
+    const viewPhotos = document.getElementById('view-photos');
+
+    if (view === 'recipes') {
+      tabRecipes.className = 'flex items-center justify-center gap-1.5 py-3 px-3 rounded-lg bg-surface text-primary shadow-sm transition-all duration-200';
+      tabRecipes.setAttribute('aria-selected', 'true');
+      tabPhotos.className = 'flex items-center justify-center gap-1.5 py-3 px-3 rounded-lg text-on-surface-variant hover:text-on-surface transition-all duration-200';
+      tabPhotos.setAttribute('aria-selected', 'false');
+      viewRecipes.classList.remove('hidden');
+      viewPhotos.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      tabPhotos.className = 'flex items-center justify-center gap-1.5 py-3 px-3 rounded-lg bg-surface text-primary shadow-sm transition-all duration-200';
+      tabPhotos.setAttribute('aria-selected', 'true');
+      tabRecipes.className = 'flex items-center justify-center gap-1.5 py-3 px-3 rounded-lg text-on-surface-variant hover:text-on-surface transition-all duration-200';
+      tabRecipes.setAttribute('aria-selected', 'false');
+      viewPhotos.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(31,27,24,0.05)]" data-active-classes="text-primary-container font-bold"><div class="flex justify-around items-center h-20 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="hearth" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">cottage</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Hearth</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="family-chat" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">forum</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Chat</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="calendar-and-care" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">event_note</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Care</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 transition-all duration-200 group text-primary-container font-bold" data-path="archive" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">auto_stories</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Archive</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="kinship" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">family_history</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Kinship</span></a></div></nav></body></html>

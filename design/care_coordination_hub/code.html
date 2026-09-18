@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Merriweather:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "surface-container-high": "#f0e6e1", "on-secondary-fixed-variant": "#822801", "on-surface": "#1f1b18", "primary-fixed": "#caeada", "error": "#ba1a1a", "inverse-on-surface": "#f8efea", "on-primary": "#ffffff", "surface-container": "#f5ece7", "surface-variant": "#eae1dc", "surface": "#fff8f5", "on-tertiary": "#ffffff", "inverse-primary": "#aecebe", "secondary": "#a23e18", "on-tertiary-fixed-variant": "#604100", "on-background": "#1f1b18", "tertiary-fixed": "#ffdeae", "on-surface-variant": "#424844", "tertiary": "#2d1c00", "on-secondary": "#ffffff", "on-secondary-fixed": "#390c00", "surface-dim": "#e1d8d3", "secondary-fixed-dim": "#ffb59c", "on-error": "#ffffff", "error-container": "#ffdad6", "surface-container-low": "#fbf2ed", "on-tertiary-fixed": "#281900", "surface-tint": "#486458", "tertiary-container": "#493000", "on-error-container": "#93000a", "inverse-surface": "#34302c", "secondary-fixed": "#ffdbcf", "outline-variant": "#c1c8c3", "on-secondary-container": "#6f2000", "on-primary-container": "#86a496", "primary-fixed-dim": "#aecebe", "tertiary-fixed-dim": "#fdba45", "surface-container-highest": "#eae1dc", "surface-container-lowest": "#ffffff", "surface-bright": "#fff8f5", "on-primary-fixed": "#032017", "on-tertiary-container": "#cf921c", "on-primary-fixed-variant": "#304c41", "outline": "#727974", "background": "#fff8f5", "secondary-container": "#fe8357", "primary": "#07241a", "primary-container": "#1e3a2f" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "gutter": "1rem", "gutter-md": "1.5rem", "margin-lg": "3rem", "space-xl": "2rem", "space-xs": "0.25rem", "space-md": "1rem", "margin": "1rem", "space-sm": "0.5rem", "margin-md": "2rem", "gutter-lg": "2rem" }, "fontFamily": { "story-callout": [ "Merriweather" ], "label-md": [ "Inter" ], "headline-lg": [ "Merriweather" ], "body-lg": [ "Inter" ], "body-md": [ "Inter" ], "headline-md": [ "Merriweather" ], "headline-lg-mobile": [ "Merriweather" ], "label-sm": [ "Inter" ], "label-lg": [ "Inter" ], "body-sm": [ "Inter" ], "headline-xl": [ "Merriweather" ], "headline-xl-mobile": [ "Merriweather" ] }, "fontSize": { "story-callout": [ "18px", { "lineHeight": "32px", "fontWeight": "400" } ], "label-md": [ "14px", { "lineHeight": "18px", "fontWeight": "600" } ], "headline-lg": [ "28px", { "lineHeight": "40px", "fontWeight": "700" } ], "body-lg": [ "18px", { "lineHeight": "28px", "fontWeight": "400" } ], "body-md": [ "16px", { "lineHeight": "24px", "fontWeight": "400" } ], "headline-md": [ "20px", { "lineHeight": "30px", "fontWeight": "700" } ], "headline-lg-mobile": [ "22px", { "lineHeight": "32px", "fontWeight": "700" } ], "label-sm": [ "12px", { "lineHeight": "16px", "fontWeight": "600" } ], "label-lg": [ "16px", { "lineHeight": "22px", "fontWeight": "600" } ], "body-sm": [ "14px", { "lineHeight": "20px", "fontWeight": "400" } ], "headline-xl": [ "36px", { "lineHeight": "48px", "fontWeight": "700" } ], "headline-xl-mobile": [ "28px", { "lineHeight": "38px", "fontWeight": "700" } ] } } } }</script></head><body class="bg-surface font-body-md text-body-md text-on-surface flex flex-col min-h-screen selection:bg-secondary-fixed"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 px-margin flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="Close Knit Emblem" class="h-8 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPJ1HDfoeBLMrPE_hM-3_U3PbZYKJAWmwjShjRVpE0oNNvveE8R4axPdjNSIotpBfTJ3PbzCe8LQfzWbQsC_iIhOzw7xYBeC6RskRKOCxJ-ZstEpjE6uBx4Iv7INN04a6d5QUMc0qV1Z0juv7RnAIkT153ML1kSCRxjEFFP-BcLTHr9ju21c7BQwQoEtCINjIm9LMBWCrRzup3XDBy-PLhn3pe7U3RGs-lDUb5QnBzcM3arC5aNclL"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-1"><span class="font-headline-md text-headline-md text-primary font-bold tracking-tight truncate">Close Knit</span><span class="font-label-sm text-label-sm text-secondary-container font-semibold">•</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate">Calendar And Care</span></div><button class="flex items-center gap-1 text-left min-h-[24px] group"><span class="font-label-sm text-label-sm text-on-surface font-semibold truncate group-hover:text-secondary transition-colors">The Miller Family Circle</span><span class="material-symbols-outlined text-secondary text-sm shrink-0">expand_more</span></button></div></div><div class="flex items-center gap-space-xs shrink-0"><button aria-label="Voice Prompt or Quick Audio" class="w-12 h-12 rounded-full flex items-center justify-center text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-2xl">mic</span></button><button aria-label="Nana Ruth Profile and Settings" class="w-12 h-12 rounded-full p-1 flex items-center justify-center relative hover:bg-surface-container transition-colors"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-GBZvbaRkG2VpT-7t84Ef_phzop8oF8cTnWULu-kzOBA1DwQNlmWt4hR5rCouUs4X0JShB4WniVh9NGbRwFSV0TH94l7fS5xS046xD4xu9E7yuKhDq8rmehBYpjJfG6YMpYZet-3vr32iWurSRjbUtBGeDE64w_lkDucuI23sXoW0a99vYsAKAG8tCTIhcuXqPqQSeY2PvdTHM1mfS6fVBStAdGavxfZA5n_iGU1-eD1VOiKrvgMG"/><span class="absolute bottom-1.5 right-1.5 w-3 h-3 bg-secondary rounded-full ring-2 ring-surface"></span></button></div></div></header><main class="flex flex-col relative w-full pt-20 pb-28 px-margin bg-surface flex-1"><div class="flex flex-col w-full space-y-space-md">
+<!-- Privacy & Sub-circle Assurance Banner -->
+<div class="flex items-center justify-between bg-surface-container-low px-space-md py-2.5 rounded-xl shadow-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0">lock</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">
+        Private Care Sub-Circle (Claire, Marcus, Sarah, Tom)
+      </span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-semibold shrink-0 cursor-pointer hover:underline">
+      Permissions
+    </span>
+</div>
+<!-- Nana's Daily Well-being & Emergency Fast-Track -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="space-y-1 min-w-0">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md text-primary tracking-tight">Nana Ruth’s Circle</h2>
+<span class="inline-flex w-2.5 h-2.5 rounded-full bg-secondary"></span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px] text-on-tertiary-container">wb_sunny</span>
+<span>Today: In good spirits • Gentle rest day</span>
+</div>
+</div>
+<div class="relative shrink-0">
+<img class="w-14 h-14 rounded-full object-cover shadow-sm ring-2 ring-surface-container" data-alt="Elderly grandmother with silver hair neatly pinned, warm genuine smile, wearing a cream knitted cardigan sitting in a sunlit breakfast room with soft botanical plants." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfmBFZcVFEFpaJ1i4ejVQ5rX-gxqBs7MRUXlZjABgSiWDfw5EV6YbIhZHS-FR69G1af5SpfOBPFFagFCCX_yZW84rI-GWKVcBJsBHTUFGNfhwlQ2nnd-XtaoeRPotQxtvECuGXqHrrch5jwMXM-FIymCuc48xJx38vXEHMfrwmRZIl3w2Sx4-a_aVdS5aVLAQO2obOwyOcYxxstBjF975_JNkhLAbCGStNPNFuWqj-Oa7F-yqPl-cF"/>
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full w-5 h-5 flex items-center justify-center text-[11px] font-bold">
+          ✓
+        </div>
+</div>
+</div>
+<!-- Emergency Card Button -->
+<button aria-controls="emergency-drawer" aria-expanded="false" class="w-full bg-surface-container-high hover:bg-secondary-fixed transition-colors text-on-secondary-fixed-variant rounded-xl p-space-md flex items-center justify-between text-left group" id="emergency-card-btn">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl">medical_services</span>
+</div>
+<div class="min-w-0">
+<div class="font-label-lg text-label-lg text-secondary font-bold flex items-center gap-1.5">
+<span>Emergency Card &amp; Meds</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed font-semibold">Offline Ready</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Allergies, Dr. Amara's line, Power of Attorney</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary text-2xl transition-transform group-hover:translate-x-0.5" id="emergency-toggle-icon">expand_more</span>
+</button>
+<!-- Collapsible Emergency Details -->
+<div class="hidden space-y-3 pt-2 bg-surface-container-low p-space-md rounded-xl" id="emergency-drawer">
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-surface-container-lowest p-2.5 rounded-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Primary Physician</span>
+<span class="font-label-md text-label-md text-primary font-bold block">Dr. Leila Amara</span>
+<a class="font-label-sm text-label-sm text-secondary font-semibold flex items-center gap-1 mt-1" href="tel:5550192834">
+<span class="material-symbols-outlined text-[14px]">call</span> (555) 019-2834
+          </a>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Power of Attorney</span>
+<span class="font-label-md text-label-md text-primary font-bold block">Claire Miller (Daughter)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-1">Doc filed at City Hall #882</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-2.5 rounded-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Critical Allergies &amp; Warnings</span>
+<span class="font-body-sm text-body-sm text-error font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">warning</span> Penicillin (Severe anaphylaxis) • Latex
+        </span>
+</div>
+</div>
+</div>
+<!-- Section: Today's Care Schedule -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">schedule</span>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">Today’s Care Schedule</h3>
+</div>
+<span class="font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed px-2.5 py-1 rounded-full font-semibold">
+        2 of 3 Done
+      </span>
+</div>
+<!-- Timeline Tasks -->
+<div class="space-y-3">
+<!-- Task 1: Completed -->
+<div class="flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container-low transition-all">
+<button class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-lg">check</span>
+</button>
+<div class="flex-1 min-w-0">
+<div class="flex items-baseline justify-between gap-1">
+<h4 class="font-label-lg text-label-lg text-on-surface font-semibold line-through text-on-surface-variant">
+              Morning BP &amp; Metoprolol (50mg)
+            </h4>
+<span class="font-label-sm text-label-sm text-on-surface-variant shrink-0">09:00 AM</span>
+</div>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded-full">
+              BP: 124/78
+            </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">✓ Administered by Claire</span>
+</div>
+</div>
+</div>
+<!-- Task 2: Scheduled / Assigned -->
+<div class="flex items-start gap-space-sm p-space-md rounded-xl bg-surface-container transition-all">
+<button class="w-7 h-7 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center shrink-0 mt-0.5 hover:bg-primary hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-lg">radio_button_unchecked</span>
+</button>
+<div class="flex-1 min-w-0 space-y-1">
+<div class="flex items-baseline justify-between gap-1">
+<h4 class="font-label-lg text-label-lg text-primary font-bold">
+              Physical Therapy @ St. Jude
+            </h4>
+<span class="font-label-sm text-label-sm text-secondary font-bold shrink-0">01:30 PM</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">Knee extension &amp; stability session. Room 204.</p>
+<div class="flex items-center gap-2 pt-1">
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm bg-surface-container-lowest px-2.5 py-1 rounded-full">
+<span class="material-symbols-outlined text-[16px] text-secondary">directions_car</span>
+<span>Marcus picking up at 1:00 PM</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Task 3: Open Slot / Actionable -->
+<div class="flex items-start gap-space-sm p-space-md rounded-xl bg-secondary-fixed/50 transition-all">
+<div class="w-7 h-7 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+<span class="material-symbols-outlined text-lg">volunteer_activism</span>
+</div>
+<div class="flex-1 min-w-0 space-y-2">
+<div class="flex items-baseline justify-between gap-1">
+<h4 class="font-label-lg text-label-lg text-on-secondary-fixed font-bold">
+              Dinner Drop-off &amp; 30-min Check-in
+            </h4>
+<span class="font-label-sm text-label-sm text-on-secondary-fixed-variant font-bold shrink-0">05:30 PM</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-secondary-fixed-variant">
+            Warm meal delivery and evening tea companionship.
+          </p>
+<button class="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary-container text-on-secondary font-label-md text-label-md px-3.5 py-1.5 rounded-lg shadow-sm transition-transform active:scale-95" id="claim-dinner-btn">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span id="claim-dinner-text">I'll Take This (Claim Slot)</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Doctor's Audio Visit Log & Direct Notes -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">clinical_notes</span>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">Latest Doctor’s Note</h3>
+</div>
+<button class="font-label-sm text-label-sm text-secondary font-semibold hover:underline">
+        Past Visits (6)
+      </button>
+</div>
+<!-- Doctor Visit Card -->
+<div class="bg-surface-container-low rounded-xl p-space-md space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg text-primary font-bold">Dr. Amara Post-Op Review</span>
+<span class="font-label-sm text-label-sm bg-surface-container text-on-surface-variant px-2 py-0.5 rounded">Yesterday</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-tertiary-container font-semibold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[16px]">verified</span> Validated
+        </span>
+</div>
+<p class="font-story-callout text-story-callout text-on-surface italic bg-surface-container-lowest p-3 rounded-lg">
+        “Right knee is healing beautifully with zero sign of infection. We can reduce the heavy compression wrap to evening wear only. Next routine checkup in exactly 4 weeks.”
+      </p>
+<!-- Heirloom Audio Attachment Playback -->
+<div class="bg-surface-container p-3 rounded-xl flex items-center gap-3">
+<button aria-label="Play Dr Amara voice memo" class="w-12 h-12 rounded-full bg-primary hover:bg-primary-container text-on-primary flex items-center justify-center shrink-0 shadow transition-transform active:scale-90" id="audio-play-btn">
+<span class="material-symbols-outlined text-2xl" id="play-icon">play_arrow</span>
+</button>
+<div class="flex-1 min-w-0 space-y-1">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="font-semibold text-primary truncate">Doctor’s Voice Memo (Full Explanation)</span>
+<span class="text-on-surface-variant font-mono text-[11px]" id="audio-time">01:42</span>
+</div>
+<!-- Tactile Waveform Bars -->
+<div class="flex items-center gap-1 h-5 w-full cursor-pointer py-1" id="waveform-track">
+<div class="w-1 bg-primary h-2 rounded-full"></div>
+<div class="w-1 bg-primary h-4 rounded-full"></div>
+<div class="w-1 bg-primary h-5 rounded-full"></div>
+<div class="w-1 bg-primary h-3 rounded-full"></div>
+<div class="w-1 bg-primary h-4 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-5 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-3 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-2 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-4 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-3 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-2 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-4 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-5 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-2 rounded-full"></div>
+<div class="w-1 bg-primary-fixed-dim h-1 rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm pt-1">
+<span>Recorded live in clinic by Claire</span>
+<button class="font-label-sm text-label-sm text-primary font-bold flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-[16px]">chat_bubble_outline</span> Discuss in Chat
+        </button>
+</div>
+</div>
+</div>
+<!-- Section: Medication & Refills Radar -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">pill</span>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">Medication Radar</h3>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+<div class="grid grid-cols-1 gap-space-sm">
+<!-- Med 1: Urgent/Approaching Refill -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-2">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-label-lg text-label-lg text-primary font-bold">Calcium + Vitamin D3</h4>
+<span class="font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed px-2 py-0.5 rounded-full font-bold">
+                Low Supply
+              </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">1 tab daily with breakfast • Walgreens on Main</p>
+</div>
+<span class="font-label-md text-label-md text-secondary font-bold">6 Days Left</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full w-1/5"></div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">task_alt</span> Marcus volunteered for pickup Tuesday
+          </span>
+<button class="font-label-sm text-label-sm text-secondary hover:underline">Change</button>
+</div>
+</div>
+<!-- Med 2: Ample Supply -->
+<div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-2">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-label-lg text-label-lg text-primary font-bold">Lisinopril (10mg)</h4>
+<span class="font-label-sm text-label-sm bg-primary-fixed text-on-primary-fixed px-2 py-0.5 rounded-full font-semibold">
+                Stocked
+              </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Blood pressure control • Nightly at 8:00 PM</p>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">28 Days Left</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full w-4/5"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section: Meal Train & Practical Care Rota -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl">soup_kitchen</span>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold">Meal Train &amp; Visiting Rota</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Week 3 of Recovery</span>
+</div>
+<!-- Rota Days Horizontal Scroll / Stack -->
+<div class="space-y-2.5">
+<!-- Wednesday Card -->
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-surface-container-highest flex flex-col items-center justify-center text-center shrink-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Wed</span>
+<span class="font-headline-md text-headline-md text-primary leading-none">25</span>
+</div>
+<div class="min-w-0">
+<h4 class="font-label-lg text-label-lg text-primary font-bold truncate">Sarah’s Chicken &amp; Veggie Broth</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Low sodium, brings extra sourdough rolls</p>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Close-up portrait of a smiling young mother with brown curly hair, wearing a terracotta knit sweater, natural home lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsFDfzVbDj4z6DPnBd8MsM6zLktXdmccI-1SFFb-OKGf0zbgosMcl0_O4odrtpJ33xsS15rp1q4UWB7qB4aZNU39RpRfxdMVOuMCfagiRZ26jo4xOmdozILo2L5sF746cnzMiYZd9FKdA1GB4aRA5K722ompxUf2kbKdGzC-TH-hIQphWZV3i2y3sBSATvzaZvX0hnKlboVTKPsRZ-a4_Dk-jA2dRln_z1xTJq0vzQV6ECAP_lP2z_"/>
+</div>
+</div>
+<!-- Thursday Card (Unclaimed Opportunity) -->
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-high/60 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-surface-container flex flex-col items-center justify-center text-center shrink-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Thu</span>
+<span class="font-headline-md text-headline-md text-primary leading-none">26</span>
+</div>
+<div>
+<h4 class="font-label-lg text-label-lg text-secondary font-bold">Open Evening Meal</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Nana loves pasta, stew, or mild curries</p>
+</div>
+</div>
+<button class="bg-surface-container-lowest hover:bg-secondary hover:text-on-secondary text-primary font-label-md text-label-md px-3 py-1.5 rounded-lg shadow-sm transition-colors shrink-0 font-semibold" id="claim-rota-btn">
+          Claim Day
+        </button>
+</div>
+<!-- Friday Card -->
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-surface-container-highest flex flex-col items-center justify-center text-center shrink-0">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fri</span>
+<span class="font-headline-md text-headline-md text-primary leading-none">27</span>
+</div>
+<div class="min-w-0">
+<h4 class="font-label-lg text-label-lg text-primary font-bold truncate">Tom &amp; Kids Dinner Night</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Mild Shepherd’s Pie + puzzle hour</p>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait of an approachable middle-aged father with glasses and stubble smiling warmly in a kitchen." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvE7zanqcRbf6wCFE-Kurb9L1Jeyzis7nx3mzcYPFxF7ysnID5rgBWnJ89FgsIzXdWptX1eLhDOywFT_juCmDF00OSXnzj-dZapFFFzDitWtQEB92hGTaUZvJ8M7ioY1PZgZ-sr_y0T-9KH7ItzJc0udCAHv53nOWFghyemEDWAqjrUk8fj_gCKLW3o9cr5GFNftl8vkwrHXH7vwICcgfXFL0AxwRm9bxLk3QRAnIFkz-Z3I5AoKGw"/>
+</div>
+</div>
+</div>
+<!-- Quick Add Rota Action -->
+<div class="pt-1 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Dietary note: Low potassium &amp; tender textures</span>
+<button class="font-label-sm text-label-sm text-primary font-bold flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-[16px]">calendar_add_on</span> Propose Next Week
+      </button>
+</div>
+</div>
+<!-- Warm Living Room Quick Voice Note Check-in Trigger -->
+<div class="bg-primary text-on-primary rounded-xl p-space-md flex items-center justify-between shadow-md">
+<div class="space-y-0.5 min-w-0">
+<h4 class="font-label-lg text-label-lg text-on-primary font-bold">Have an update for Nana's Circle?</h4>
+<p class="font-body-sm text-body-sm text-primary-fixed truncate">Speak a 30-sec memo. We transcribe &amp; notify everyone.</p>
+</div>
+<button aria-label="Record caregiver voice update" class="w-11 h-11 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 shadow hover:scale-105 active:scale-95 transition-transform" id="quick-mic-btn">
+<span class="material-symbols-outlined text-2xl text-on-secondary">mic</span>
+</button>
+</div>
+</div>
+<script>
+  // Emergency Card Accordion Toggle
+  const emergencyBtn = document.getElementById('emergency-card-btn');
+  const emergencyDrawer = document.getElementById('emergency-drawer');
+  const emergencyIcon = document.getElementById('emergency-toggle-icon');
+
+  if (emergencyBtn && emergencyDrawer && emergencyIcon) {
+    emergencyBtn.addEventListener('click', () => {
+      const isHidden = emergencyDrawer.classList.contains('hidden');
+      if (isHidden) {
+        emergencyDrawer.classList.remove('hidden');
+        emergencyIcon.style.transform = 'rotate(180deg)';
+        emergencyBtn.setAttribute('aria-expanded', 'true');
+      } else {
+        emergencyDrawer.classList.add('hidden');
+        emergencyIcon.style.transform = 'rotate(0deg)';
+        emergencyBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  // Interactive Task Claim Button
+  const claimDinnerBtn = document.getElementById('claim-dinner-btn');
+  const claimDinnerText = document.getElementById('claim-dinner-text');
+  if (claimDinnerBtn && claimDinnerText) {
+    claimDinnerBtn.addEventListener('click', () => {
+      if (!claimDinnerBtn.classList.contains('bg-primary')) {
+        claimDinnerBtn.classList.remove('bg-secondary', 'hover:bg-secondary-container');
+        claimDinnerBtn.classList.add('bg-primary', 'text-on-primary');
+        claimDinnerText.innerText = 'Claimed by You (Claire)';
+        
+        // Confetti burst simulation via warm dot ripples
+        const parent = claimDinnerBtn.parentElement;
+        const msg = document.createElement('span');
+        msg.className = 'font-label-sm text-label-sm text-primary font-bold block animate-fade-in';
+        msg.innerText = '✓ Sibling group notified! Thank you.';
+        parent.appendChild(msg);
+      }
+    });
+  }
+
+  // Meal Train Slot Claim
+  const claimRotaBtn = document.getElementById('claim-rota-btn');
+  if (claimRotaBtn) {
+    claimRotaBtn.addEventListener('click', () => {
+      claimRotaBtn.innerText = '✓ Claimed by You';
+      claimRotaBtn.classList.remove('bg-surface-container-lowest', 'text-primary');
+      claimRotaBtn.classList.add('bg-primary', 'text-on-primary');
+      claimRotaBtn.disabled = true;
+    });
+  }
+
+  // Doctor Audio Waveform Simulation
+  const audioPlayBtn = document.getElementById('audio-play-btn');
+  const playIcon = document.getElementById('play-icon');
+  const audioTime = document.getElementById('audio-time');
+  let isPlaying = false;
+  let audioInterval;
+
+  if (audioPlayBtn && playIcon && audioTime) {
+    audioPlayBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        playIcon.innerText = 'pause';
+        let seconds = 0;
+        audioInterval = setInterval(() => {
+          seconds++;
+          const mins = Math.floor(seconds / 60);
+          const secs = (seconds % 60).toString().padStart(2, '0');
+          audioTime.innerText = `0${mins}:${secs}`;
+          if (seconds >= 102) {
+            clearInterval(audioInterval);
+            isPlaying = false;
+            playIcon.innerText = 'play_arrow';
+            audioTime.innerText = '01:42';
+          }
+        }, 1000);
+      } else {
+        clearInterval(audioInterval);
+        playIcon.innerText = 'play_arrow';
+      }
+    });
+  }
+
+  // Caregiver Quick Voice Prompt interaction
+  const quickMicBtn = document.getElementById('quick-mic-btn');
+  if (quickMicBtn) {
+    quickMicBtn.addEventListener('click', () => {
+      quickMicBtn.classList.toggle('animate-pulse');
+      quickMicBtn.classList.toggle('bg-error');
+    });
+  }
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(31,27,24,0.05)]" data-active-classes="text-primary-container font-bold"><div class="flex justify-around items-center h-20 px-space-xs"><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="hearth" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">cottage</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Hearth</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="family-chat" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">forum</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Chat</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 transition-all duration-200 group text-primary-container font-bold" data-path="calendar-and-care" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">event_note</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Care</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="archive" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">auto_stories</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Archive</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-1 text-on-surface-variant hover:text-primary transition-all duration-200 group" data-path="kinship" href="#"><div class="w-10 h-7 flex items-center justify-center rounded-full group-hover:bg-surface-container"><span class="material-symbols-outlined text-[24px]">family_history</span></div><span class="font-label-sm text-label-sm mt-0.5 tracking-tight">Kinship</span></a></div></nav></body></html>

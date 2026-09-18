@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    // The server imports ../../src/mockData.ts and ../../src/types.ts to seed from
+    // the app's own fixtures, so those files must be inside the program.
+    "allowImportingTsExtensions": true,
+    // verbatimModuleSyntax is deliberately OFF: this program includes the app's
+    // ../src/*.ts files, which are compiled by Expo's own CommonJS-targeted config.
+    // Enabling it makes every 'export const' in those shared files an error here.
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["src/**/*.ts", "../src/mockData.ts", "../src/types.ts"]
+}

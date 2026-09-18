@@ -1,0 +1,18 @@
+node_modules/
+.npm-cache/
+# Isolated HOME used to keep installs away from the root-owned global ~/.npm cache.
+.fakehome/
+.expo/
+dist/
+web-build/
+*.log
+.DS_Store
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.env
+.env.local
+# Downloaded seed images, cached so re-seeding does not re-fetch them.
+server/.seed-cache/
