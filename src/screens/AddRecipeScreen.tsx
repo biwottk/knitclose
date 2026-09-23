@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Image, Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Screen } from "../components/Screen";
 import { AppText } from "../components/Text";
 import { Button } from "../components/Button";
+import { FormActions } from "../components/FormActions";
 import { Card } from "../components/Card";
 import { Avatar } from "../components/Avatar";
 import { Icon, IconBadge } from "../components/Icon";
@@ -41,34 +42,39 @@ export function AddRecipeScreen({
   const [steps, setSteps] = useState("");
   const [prepText, setPrepText] = useState("");
   const [yieldText, setYieldText] = useState("");
-  const [dish, setDish] = useState<string | null>(null);
-  const [card, setCard] = useState<string | null>(null);
+  const [dish, setDish] = useState<{ uri: string; mimeType: string } | null>(null);
+  const [card, setCard] = useState<{ uri: string; mimeType: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  /** The last failure, shown inline above the save button until the next attempt. */
+  const [error, setError] = useState<unknown>(null);
 
   const chosen = people.find((p) => p.id === personId);
   // Whose recipe it is: the chosen person's name, or whatever was typed.
   const effectiveAttribution = attribution.trim() || chosen?.name || "";
 
-  const pick = async (set: (uri: string) => void) => {
+  const pick = async (set: (asset: { uri: string; mimeType: string }) => void) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"], quality: 0.85,
     });
-    if (!result.canceled && result.assets[0]) set(result.assets[0].uri);
+    const asset = result.assets?.[0];
+    if (!result.canceled && asset) set({ uri: asset.uri, mimeType: asset.mimeType ?? "image/jpeg" });
   };
 
   const save = async () => {
     if (saving || !title.trim() || !effectiveAttribution) return;
+    Keyboard.dismiss();
     setSaving(true);
+    setError(null);
     try {
       // Uploads first: a recipe row pointing at bytes that never arrived is a permanently
-      // broken image in an archive whose whole promise is permanence.
-      const dishUp = dish ? await actions.uploadMedia(dish, "image/jpeg") : null;
-      const cardUp = card ? await actions.uploadMedia(card, "image/jpeg") : null;
-      if ((dish && !dishUp) || (card && !cardUp)) throw new Error("upload failed");
+      // broken image in an archive whose whole promise is permanence. Both reject on
+      // failure, so a photo can never silently go missing.
+      const dishUp = dish ? await actions.uploadMedia(dish.uri, dish.mimeType) : null;
+      const cardUp = card ? await actions.uploadMedia(card.uri, card.mimeType) : null;
 
-      const id = await actions.addRecipe({
+      await actions.addRecipe({
         title: title.trim(),
         attribution: effectiveAttribution,
         personId,
@@ -81,30 +87,30 @@ export function AddRecipeScreen({
         photoMediaId: dishUp?.id,
         cardMediaId: cardUp?.id,
       });
-      if (id) onDone();
-      else setSaving(false);
-    } catch {
+      onDone();
+    } catch (err) {
+      // Inline, not an alert: an alert is a no-op on web and gone on a phone; this stays
+      // beside the button until the next try, and the form keeps every word.
       setSaving(false);
-      Alert.alert(
-        "We could not save this recipe",
-        "Your words are still here. Please check your connection and try again.",
-      );
+      setError(err);
     }
   };
 
   return (
     <Screen
-      footer={
-        <>
-          <Button
-            title={saving ? "Adding it to the box..." : "Add to the recipe box"}
-            icon="check"
-            disabled={saving || !title.trim() || !effectiveAttribution}
-            onPress={save}
-          />
-          <Button title="Never mind" kind="quiet" icon="close" onPress={onCancel} />
-        </>
-      }
+      footer={(keyboardVisible) => (
+        <FormActions
+          keyboardVisible={keyboardVisible}
+          error={error}
+          title={saving ? "Adding it to the box..." : "Add to the recipe box"}
+          compactTitle={saving ? "Saving..." : "Save recipe"}
+          disabled={saving || !title.trim() || !effectiveAttribution}
+          onPress={save}
+          secondaryTitle="Never mind"
+          secondaryIcon="close"
+          onSecondary={onCancel}
+        />
+      )}
     >
       <View style={styles.head}>
         <IconBadge name="recipe" size={48} tone="mint" />
@@ -133,7 +139,7 @@ export function AddRecipeScreen({
 
         {card ? (
           <View style={styles.previewRow}>
-            <Image source={{ uri: card }} style={styles.cardPreview} />
+            <Image source={{ uri: card.uri }} style={styles.cardPreview} />
             <Button title="Replace" kind="outline" small onPress={() => pick(setCard)} />
           </View>
         ) : (
@@ -252,7 +258,7 @@ export function AddRecipeScreen({
       <View style={styles.section}>
         <AppText variant="label">A photograph of the dish  (optional)</AppText>
         <View style={styles.previewRow}>
-          {dish ? <Image source={{ uri: dish }} style={styles.dishPreview} /> : null}
+          {dish ? <Image source={{ uri: dish.uri }} style={styles.dishPreview} /> : null}
           <Button
             title={dish ? "Replace" : "Add a photograph"}
             kind="outline"

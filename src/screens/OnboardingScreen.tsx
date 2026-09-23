@@ -3,10 +3,15 @@ import { StyleSheet, TextInput, View } from "react-native";
 import { Screen } from "../components/Screen";
 import { AppText } from "../components/Text";
 import { Button } from "../components/Button";
+import { FormActions } from "../components/FormActions";
+import { Card } from "../components/Card";
+import { IconBadge } from "../components/Icon";
 import { PrivacyBadge } from "../components/PrivacyBadge";
 import { Logo } from "../components/Logo";
 import { colors, fonts, INPUT_MIN, radii, spacing, type }  from "../theme";
 import { useStore } from "../store";
+import { api } from "../api";
+import { SaveError } from "../components/SaveError";
 
 /**
  * Screen 2 -- First-run onboarding.
@@ -22,13 +27,37 @@ import { useStore } from "../store";
  * brand mark previously appeared nowhere. The lockup already carries the wordmark,
  * so the name is not also set as text beneath it.
  */
-type Step = "choose" | "create" | "join";
+type Step = "choose" | "create" | "join" | "confirm";
 
-export function OnboardingScreen({ onDone }: { onDone: () => void }) {
+type InvitePreview = {
+  familyName: string; inviterName: string; role: string; expiresAt: string;
+};
+
+function invitationToken(value: string): string {
+  const trimmed = value.trim();
+  const marker = "/invite/";
+  const at = trimmed.indexOf(marker);
+  return at >= 0 ? trimmed.slice(at + marker.length).split(/[?#]/)[0] : trimmed;
+}
+
+export function OnboardingScreen({
+  onDone, initialInviteToken,
+}: { onDone: () => void; initialInviteToken?: string }) {
   const { actions } = useStore();
-  const [step, setStep] = useState<Step>("choose");
-  const [value, setValue] = useState("");
+  const [step, setStep] = useState<Step>(initialInviteToken ? "join" : "choose");
+  const [value, setValue] = useState(initialInviteToken ?? "");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [preview, setPreview] = useState<InvitePreview | null>(null);
+
+  React.useEffect(() => {
+    if (!initialInviteToken) return;
+    setBusy(true); setError(null);
+    api.previewInvitation(initialInviteToken)
+      .then((result) => { setPreview(result); setStep("confirm"); })
+      .catch(setError)
+      .finally(() => setBusy(false));
+  }, [initialInviteToken]);
 
   if (step === "choose") {
     return (
@@ -66,6 +95,53 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
     );
   }
 
+  if (step === "confirm" && preview) {
+    return (
+      <Screen
+        footer={(keyboardVisible) => (
+          <FormActions
+            keyboardVisible={keyboardVisible}
+            error={error}
+            title={busy ? "Joining your family…" : "Join " + preview.familyName}
+            compactTitle={busy ? "Joining…" : "Join family"}
+            icon="people"
+            disabled={busy}
+            onPress={async () => {
+              if (busy) return;
+              setBusy(true); setError(null);
+              try {
+                await api.redeemInvitation(invitationToken(value));
+                await onDone();
+              } catch (err) {
+                setError(err);
+                setBusy(false);
+              }
+            }}
+            secondaryTitle="This is not my family"
+            secondaryIcon="chevronLeft"
+            onSecondary={() => { setStep("join"); setPreview(null); setError(null); }}
+          />
+        )}
+      >
+        <View style={styles.header}>
+          <IconBadge name="people" size={56} tone="mint" />
+          <AppText variant="display">You were invited to {preview.familyName}</AppText>
+          <AppText variant="story" color={colors.onSurfaceVariant}>
+            {preview.inviterName} invited you. Confirm the family name before joining—this
+            invitation changes which private circle you are opening.
+          </AppText>
+        </View>
+        <Card tone="mint" style={styles.invitePreview}>
+          <AppText variant="subtitle">{preview.familyName}</AppText>
+          <AppText variant="body" color={colors.onPrimaryFixedVariant}>
+            Invited by {preview.inviterName} · Access as {preview.role}
+          </AppText>
+          <PrivacyBadge text="Only members of this family circle can see what is inside" />
+        </Card>
+      </Screen>
+    );
+  }
+
   const creating = step === "create";
 
   return (
@@ -91,18 +167,33 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         accessibilityLabel={creating ? "Family name" : "Invitation code"}
       />
 
+      <SaveError
+        error={error}
+        title={creating ? "We could not create the circle." : "We could not verify that invitation."}
+      />
+
       <Button
         title={busy ? "Setting up..." : creating ? "Create our circle" : "Join my family"}
         icon={creating ? "add" : "check"}
         disabled={value.trim().length === 0 || busy}
         onPress={async () => {
-          setBusy(true);
-          // The circle already exists at this point -- signing up created it -- so this
-          // step only gives it the name the family will recognise. Persisting it here
-          // rather than in local state is the difference between a name that survives
-          // a reinstall and one that does not.
-          if (creating) await actions.setFamilyName(value.trim());
-          onDone();
+          if (busy) return;
+          setBusy(true); setError(null);
+          try {
+            if (creating) {
+              await actions.setFamilyName(value.trim());
+              await onDone();
+            } else {
+              const token = invitationToken(value);
+              const result = await api.previewInvitation(token);
+              setPreview(result);
+              setStep("confirm");
+              setBusy(false);
+            }
+          } catch (err) {
+            setError(err);
+            setBusy(false);
+          }
         }}
       />
       <Button title="Go back" kind="quiet" icon="chevronLeft" onPress={() => setStep("choose")} />
@@ -113,6 +204,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   brand: { alignItems: "center", marginTop: spacing.xxl },
   header: { marginTop: spacing.xl, marginBottom: spacing.lg, gap: spacing.sm },
+  invitePreview: { gap: spacing.sm },
   centred: { alignItems: "center" },
   input: {
     minHeight: INPUT_MIN + 6,

@@ -1,8 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from "react";
 import type {
   ArchivePhoto, Audience, CareCircle, CareTask, Comment, CurrentUser, Deed,
-  DoctorNote, EmergencyCard, Family, FamilyEvent, MealSlot, Medication, MemoryKind,
-  Message, Person, ReactionKind, Recipe, Thread,
+  DoctorNote, EmergencyCard, Family, FamilyEvent, Letter, MealSlot, Medication,
+  FamilyObject, MemoryKind, Message, Person, ReactionKind, Recipe, Thread,
+  VoiceRecording,
 } from "./types";
 import { canView } from "./types";
 import { shortName } from "./names";
@@ -39,6 +40,8 @@ interface State {
   family: Family;
   currentUser: CurrentUser;
   people: Person[];
+  /** Actual app accounts in the circle; distinct from people in the family graph. */
+  members: { userId: string; name: string; role: string; personId: string | null }[];
   deeds: Deed[];
   comments: Comment[];
   threads: Thread[];
@@ -51,6 +54,14 @@ interface State {
   emergencyCards: EmergencyCard[];
   recipes: Recipe[];
   archivePhotos: ArchivePhoto[];
+  /** The Letter Box: handwritten letters, cards, diary pages. */
+  letters: Letter[];
+  /** The Voice Vault: recordings somebody chose to keep. */
+  voices: VoiceRecording[];
+  /** Objects & Heirlooms: the ring, the clock, the toolbox -- and who has each. */
+  objects: FamilyObject[];
+  /** Prompts nobody has answered yet, so the vault always has a next question. */
+  openPrompts: string[];
   events: FamilyEvent[];
   /** Warm pings sent this session, so the UI can confirm them without a backend. */
   sentNudges: string[];
@@ -328,6 +339,7 @@ const initialState: State = {
   family: { id: "", name: "", plan: "free" },
   currentUser: { id: "", name: "", role: "member", personId: "" },
   people: [],
+  members: [],
   deeds: [],
   comments: [],
   status: "loading",
@@ -341,6 +353,10 @@ const initialState: State = {
   emergencyCards: [],
   recipes: [],
   archivePhotos: [],
+  letters: [],
+  voices: [],
+  objects: [],
+  openPrompts: [],
   events: [],
   sentNudges: [],
 };
@@ -357,33 +373,66 @@ interface Store extends State {
    */
   refresh: () => Promise<void>;
 
-  /** Server-backed writes. Optimistic locally, then persisted. */
+  /**
+   * Server-backed writes.
+   *
+   * Two families. EDITS (react, claim, rename...) are optimistic: dispatched locally,
+   * then persisted, and reconciled by a refresh if the server says no. CREATES (addDeed,
+   * addPerson, uploadMedia...) are not optimistic and REJECT on failure -- the screen that
+   * owns the form catches the error and keeps the person's words on screen. See `create`.
+   */
   actions: {
     addDeed: (input: {
       /** Register. Defaults to "memory" server-side if omitted. */
       kind?: MemoryKind;
-      title: string; whenText: string; whenDate?: string; story?: string;
+      title: string; whenText: string; whenDate?: string; whereText?: string; story?: string;
       personIds?: string[]; tags?: string[]; mediaIds?: string[];
-      audience?: Audience; fromMessageId?: string;
+      audience?: Audience; audiencePersonIds?: string[]; fromMessageId?: string;
       /** Override the kind's default resurfacing rule. */
       mayResurface?: boolean;
-    }) => Promise<string | undefined>;
+    }) => Promise<string>;
     toggleReaction: (deedId: string, kind: ReactionKind) => Promise<void>;
-    addComment: (deedId: string, body: string, parentId?: string) => Promise<void>;
+    addComment: (deedId: string, body: string, parentId?: string) => Promise<string>;
     flagDeed: (deedId: string) => Promise<void>;
     addPerson: (input: {
       name: string; birthDate?: string; deathDate?: string; bio?: string;
       location?: string; isLiving?: boolean; parentIds?: string[]; spouseIds?: string[];
-    }) => Promise<string | undefined>;
+    }) => Promise<string>;
+    addLetter: (input: {
+      kind?: string; title: string; fromName?: string; fromPersonId?: string;
+      toName?: string; whenText?: string; transcript?: string;
+      transcriptConfirmed?: boolean; provenance?: string; heldByName?: string;
+      imageMediaId?: string; pageMediaIds?: string[]; audience?: Audience;
+    }) => Promise<string>;
+    /** Correct or confirm a transcription. The human-in-the-loop step for OCR. */
+    confirmTranscript: (letterId: string, transcript: string) => Promise<void>;
+    addObject: (input: {
+      name: string; kind?: string; story?: string;
+      originText?: string; originYear?: string; originPersonId?: string;
+      heldByPersonId?: string; heldByName?: string; whereKept?: string;
+      status?: string; statusNote?: string;
+      imageMediaId?: string; photoMediaIds?: string[];
+    }) => Promise<string>;
+    /** Record a handover. Appends to the chain and moves the current holder. */
+    handOnObject: (objectId: string, input: {
+      personId?: string; holderName?: string; fromText?: string; note?: string;
+      whereKept?: string;
+    }) => Promise<void>;
+    setObjectStatus: (objectId: string, status: string, statusNote?: string) => Promise<void>;
+    /** Promote a recording into the voice vault. */
+    keepVoice: (input: {
+      mediaId: string; title?: string; speakerName?: string; prompt?: string;
+      whenText?: string; fromMessageId?: string;
+    }) => Promise<string>;
     addRecipe: (input: {
       title: string; attribution: string; personId?: string; provenance?: string;
       origin?: string; originYear?: string; prepText?: string; yieldText?: string;
       ingredients?: string[]; steps?: string[]; tradition?: string;
       photoMediaId?: string; cardMediaId?: string;
-    }) => Promise<string | undefined>;
+    }) => Promise<string>;
     memorialise: (personId: string) => Promise<void>;
     setFamilyName: (name: string) => Promise<void>;
-    sendMessage: (threadId: string, input: { body?: string; mediaIds?: string[] }) => Promise<void>;
+    sendMessage: (threadId: string, input: { body?: string; mediaIds?: string[]; audioMediaId?: string }) => Promise<void>;
     createThread: (input?: { title?: string; kind?: string; audience?: string; memberIds?: string[] }) => Promise<string | undefined>;
     createCareCircle: (input: { personId: string; status?: string; memberIds?: string[] }) => Promise<string | undefined>;
     claimCareTask: (taskId: string) => Promise<void>;
@@ -395,7 +444,8 @@ interface Store extends State {
     toggleRsvp: (eventId: string) => Promise<void>;
     claimPotluck: (eventId: string, itemId: string) => Promise<void>;
     sendNudge: (personId: string, action?: string) => Promise<void>;
-    uploadMedia: (uri: string, contentType: string, durationSec?: number) => Promise<{ id: string; uri: string } | undefined>;
+    /** Rejects on failure; never resolves undefined. */
+    uploadMedia: (uri: string, contentType: string, durationSec?: number) => Promise<{ id: string; uri: string }>;
   };
 
   personById: (id: string) => Person | undefined;
@@ -465,10 +515,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
        * list is known -- a cold start on a phone is the moment the app feels fast or
        * slow, and serialising these would be the single biggest thing making it slow.
        */
-      const [people, deeds, threads, care, recipes, archivePhotos, events] = await Promise.all([
-        api.people(), api.deeds(), api.threads(), api.care(),
-        api.recipes(), api.archivePhotos(), api.events(),
-      ]);
+      const [people, members, deeds, threads, care, recipes, archivePhotos, events, letters, voices, objects] =
+        await Promise.all([
+          api.people(), api.members(), api.deeds(), api.threads(), api.care(),
+          api.recipes(), api.archivePhotos(), api.events(),
+          api.letters(), api.voices(), api.objects(),
+        ]);
 
       const messages = (
         await Promise.all(threads.map((t) => api.messages(t.id)))
@@ -477,7 +529,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       dispatch({
         type: "hydrate",
         data: {
-          family: session.family, currentUser: session.user, people, deeds, threads, messages,
+          family: session.family, currentUser: session.user, people, members, deeds, threads, messages,
           careCircles: care.circles,
           careTasks: care.tasks,
           medications: care.medications,
@@ -485,6 +537,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           doctorNotes: care.doctorNotes,
           emergencyCards: care.emergencyCards,
           recipes, archivePhotos, events,
+          letters,
+          voices: voices.voices,
+          openPrompts: voices.openPrompts,
+          objects,
         },
       });
     } catch (err) {
@@ -518,13 +574,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    /**
+     * A CREATE is different from an optimistic edit, and must not go through `persist`.
+     *
+     * Nothing was dispatched locally, so there is nothing to reconcile -- and calling
+     * `refresh()` on failure is actively harmful: if the save failed because the network
+     * is down, the refresh fails too, the store flips to `status: "error"`, and StoreGate
+     * unmounts the entire navigator INCLUDING THE FORM THE PERSON WAS TYPING IN. They see
+     * "we could not reach your family" and their words are gone. That is the exact
+     * opposite of the "your words are still here" promise every Add screen makes.
+     *
+     * So a create rethrows. The screen owns the form state and is the only place that can
+     * keep it on screen and say, specifically, what went wrong. On success the store is
+     * refreshed as before, because the server assigns ids, bylines and timestamps.
+     */
+    const create = async <T,>(work: () => Promise<T>): Promise<T> => {
+      try {
+        return await work();
+      } catch (err) {
+        console.warn("[store] create failed:", (err as Error).message);
+        throw err;
+      }
+    };
+
     return {
       ...state,
       dispatch,
       refresh,
 
       actions: {
-        addDeed: (input) => persist(async () => {
+        addDeed: (input) => create(async () => {
           const id = await api.addDeed(input);
           // Refetch rather than synthesising the row: the server assigns createdAt and
           // the author byline, and guessing them would make the card change under the
@@ -540,19 +619,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           await persist(() => api.toggleReaction(deedId, kind));
         },
 
-        addComment: async (deedId, body, parentId) => {
-          await persist(async () => {
-            await api.addComment(deedId, body, parentId);
-            await refresh();
-          });
-        },
+        addComment: (deedId, body, parentId) => create(async () => {
+          const id = await api.addComment(deedId, body, parentId);
+          await refresh();
+          return id;
+        }),
 
         flagDeed: async (deedId) => {
           dispatch({ type: "flagDeed", deedId });
           await persist(() => api.flagDeed(deedId));
         },
 
-        addPerson: (input) => persist(async () => {
+        addPerson: (input) => create(async () => {
           const id = await api.addPerson(input);
           // Refetch: the server resolves relationship edges in both directions, and the
           // tree layout depends on them being right.
@@ -560,8 +638,51 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           return id;
         }),
 
-        addRecipe: (input) => persist(async () => {
+        addRecipe: (input) => create(async () => {
           const id = await api.addRecipe(input);
+          await refresh();
+          return id;
+        }),
+
+        addLetter: (input) => create(async () => {
+          const id = await api.addLetter(input);
+          await refresh();
+          return id;
+        }),
+
+        confirmTranscript: async (letterId, transcript) => {
+          await persist(async () => {
+            // Saving a correction IS the confirmation: a human has read the handwriting
+            // and decided what it says, which is what turns a guess into archive material.
+            await api.updateTranscript(letterId, { transcript, confirmed: true });
+            await refresh();
+          });
+        },
+
+        addObject: (input) => create(async () => {
+          const id = await api.addObject(input);
+          // Refetch: the server seeds the custody chain with the current holder, so the
+          // object comes back with more than was sent.
+          await refresh();
+          return id;
+        }),
+
+        handOnObject: async (objectId, input) => {
+          await persist(async () => {
+            await api.handOnObject(objectId, input);
+            await refresh();
+          });
+        },
+
+        setObjectStatus: async (objectId, status, statusNote) => {
+          await persist(async () => {
+            await api.setObjectStatus(objectId, status, statusNote);
+            await refresh();
+          });
+        },
+
+        keepVoice: (input) => create(async () => {
+          const id = await api.keepVoice(input);
           await refresh();
           return id;
         }),
@@ -583,7 +704,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         },
 
         sendMessage: async (threadId, input) => {
-          await persist(async () => {
+          // A composed message is a create: reject on failure so Chat can keep the draft and
+          // attached photo visible. Swallowing this would make Quick Share silently lose work.
+          await create(async () => {
             await api.sendMessage(threadId, input);
             // Refetch rather than synthesising: the server sets createdAt and the byline.
             await refresh();
@@ -647,12 +770,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         },
 
         sendNudge: async (personId, action) => {
+          await create(() => api.sendNudge(personId, action));
+          // “Sent” is system status: show it only after the server accepted the nudge.
           dispatch({ type: "sendNudge", personId });
-          await persist(() => api.sendNudge(personId, action));
         },
 
+        // An upload has nothing to reconcile either, and a swallowed failure here is how a
+        // photo silently vanished from a story: the caller must see the error.
         uploadMedia: (uri, contentType, durationSec) =>
-          persist(() => api.uploadMedia(uri, contentType, durationSec)),
+          create(() => api.uploadMedia(uri, contentType, durationSec)),
       },
 
       personById: (id) => state.people.find((p) => p.id === id),

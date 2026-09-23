@@ -59,6 +59,26 @@ the wrong default, however well documented.
 The app now logs `[api] base URL: …` on launch, and a transport failure names the
 address it tried — which is what separates "not running" from "wrong host".
 
+### If photos upload but never appear (or "uploading an image fails")
+
+Three separate faults produced this one symptom, and all three are fixed:
+
+1. **A stale LAN address in signed URLs.** The API ran for days across a DHCP lease
+   change (.52 → .53) and kept signing media URLs for the old host, because the public
+   storage URL was resolved once at boot. `currentStoragePublicUrl()` now resolves per
+   signature and `storage.ts` caches one signer per host. `STORAGE_PUBLIC_URL` still wins.
+2. **`fetch(file://…).blob()` on the client.** Not reliable for local files: Android
+   rejects it outright and iOS lets the Blob body override the declared Content-Type, so
+   the API answered 415 while perfectly healthy. Native now streams the file by uri
+   through RN's XMLHttpRequest (`uploadByUri` in `src/api.ts`); web keeps the blob path.
+3. **A swallowed error.** Create actions went through the store's `persist`, which on
+   failure called `refresh()` — and when the failure was network, the refresh failed too,
+   the store flipped to `error`, and `StoreGate` unmounted the form the person was typing
+   in. Creates now use `create`, which rethrows; every Add screen catches it and shows an
+   inline `SaveError` banner above the button (`Alert.alert` is a no-op on web).
+
+The picker's own `mimeType` is now sent instead of an assumed `image/jpeg`.
+
 ### Ports are deliberately non-default
 
 5432, 5433, 9000 and 9001 were already in use on the development machine by other

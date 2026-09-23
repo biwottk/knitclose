@@ -27,7 +27,7 @@ import { networkInterfaces } from "node:os";
  * Defaulting to the detected LAN IP means a device on the same Wi-Fi works with no
  * setup, which is the normal case for this project. STORAGE_PUBLIC_URL still overrides.
  */
-function detectLanAddress(): string | undefined {
+export function detectLanAddress(): string | undefined {
   for (const addresses of Object.values(networkInterfaces())) {
     for (const a of addresses ?? []) {
       // Skip loopback and link-local; prefer a routable private address.
@@ -37,6 +37,23 @@ function detectLanAddress(): string | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * The public storage URL, resolved NOW rather than once at boot.
+ *
+ * WHY: the API process ran for days across a DHCP lease change (.52 -> .53). Every
+ * presigned URL it minted still named the old address, so every photo -- including the
+ * preview of one just uploaded -- pointed at a host that no longer existed. That looked
+ * exactly like "uploading an image is broken" while the upload itself had succeeded.
+ *
+ * An explicit STORAGE_PUBLIC_URL still wins, and outside development the value is fixed.
+ * The interface scan is microseconds, and signing already happens per response.
+ */
+export function currentStoragePublicUrl(): string {
+  if (process.env.STORAGE_PUBLIC_URL) return process.env.STORAGE_PUBLIC_URL;
+  if (!DEV) return process.env.STORAGE_ENDPOINT ?? "http://localhost:9002";
+  return `http://${detectLanAddress() ?? "localhost"}:9002`;
 }
 
 function required(name: string, fallback?: string): string {
@@ -85,11 +102,8 @@ export const config = {
      * explicit STORAGE_PUBLIC_URL always wins (needed for tunnels, or a VM with an
      * address we cannot infer).
      */
-    publicUrl:
-      process.env.STORAGE_PUBLIC_URL ??
-      (DEV
-        ? `http://${detectLanAddress() ?? "localhost"}:9002`
-        : process.env.STORAGE_ENDPOINT ?? "http://localhost:9002"),
+    /** Boot-time snapshot, for logging. storage.ts re-resolves per signature. */
+    publicUrl: currentStoragePublicUrl(),
     /** Presigned GET lifetime. Short by policy: no public buckets, no permanent URLs. */
     signedUrlTtlSec: Number(process.env.STORAGE_URL_TTL ?? 3600),
   },

@@ -35,8 +35,8 @@ import { useStore } from "../store";
  * rather than as another dense card stack.
  */
 export function DeedSharedScreen({
-  deedId, onDone, onViewDeed,
-}: { deedId: string; onDone: () => void; onViewDeed: (id: string) => void }) {
+  deedId, onDone, onOpenJournal,
+}: { deedId: string; onDone: () => void; onOpenJournal: () => void }) {
   const { deeds, people, personById, family } = useStore();
   const deed = deeds.find((d) => d.id === deedId);
 
@@ -84,8 +84,8 @@ export function DeedSharedScreen({
     <Screen
       footer={
         <>
-          <Button title="Read it in the feed" icon="archive" onPress={() => onViewDeed(deed.id)} />
-          <Button title="Done" kind="quiet" onPress={onDone} />
+          <Button title="Open the Family Journal" icon="journal" onPress={onOpenJournal} />
+          <Button title="Back to the Hearth" kind="quiet" icon="hearth" onPress={onDone} />
         </>
       }
     >
@@ -143,7 +143,7 @@ export function DeedSharedScreen({
         <Card tone="paper" elevation="raised" feature style={styles.receipt}>
           <View style={styles.receiptHead}>
             <Icon name="archive" size={15} color={colors.primary} strokeWidth={2.1} />
-            <AppText variant="micro">NOW PRESERVED</AppText>
+            <AppText variant="micro">SAVED IN THE FAMILY JOURNAL</AppText>
           </View>
           {/* display rather than title: on the peak screen the story's own name is
               the second thing you read, and it should carry weight. */}
@@ -170,7 +170,7 @@ export function DeedSharedScreen({
             <Icon name="people" size={17} color={colors.onSurfaceFaint} />
             <AppText variant="body" center style={styles.audienceText}>
               {audience} {audience === 1 ? "person" : "people"} in {family.name} can read
-              this the next time they open the app.
+              this in the Family Journal. You can always find it from the Hearth.
             </AppText>
           </View>
         ) : null}

@@ -92,12 +92,16 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
      * built from the verified role, and `personId` only ever narrows the result --
      * it can never widen it past this filter.
      */
-    const params: unknown[] = [caller.familyId, visibleAudiences(caller)];
+    const params: unknown[] = [caller.familyId, visibleAudiences(caller), caller.personId];
     let sql = `SELECT d.id, d.kind, d.may_resurface, d.title, d.when_text, d.when_date,
-                      d.story, d.author_id, d.author_name, d.audience, d.flagged,
+                      d.where_text, d.story, d.author_id, d.author_name, d.audience, d.flagged,
                       d.from_message_id, d.created_at
                  FROM deeds d
-                WHERE d.family_id = $1 AND d.audience = ANY($2)`;
+                WHERE d.family_id = $1 AND d.audience = ANY($2)
+                  AND (d.audience NOT IN ('care', 'branch') OR EXISTS (
+                    SELECT 1 FROM deed_audience_people dap
+                     WHERE dap.deed_id = d.id AND dap.person_id = $3
+                  ))`;
 
     if (personId) {
       params.push(personId);
@@ -129,10 +133,13 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
 
     const rows = await query<DeedRow>(
-      `SELECT id, kind, may_resurface, title, when_text, when_date, story, author_id,
+      `SELECT id, kind, may_resurface, title, when_text, when_date, where_text, story, author_id,
               author_name, audience, flagged, from_message_id, created_at
-         FROM deeds WHERE id = $1 AND family_id = $2 AND audience = ANY($3)`,
-      [id, caller.familyId, visibleAudiences(caller)],
+         FROM deeds d WHERE id = $1 AND family_id = $2 AND audience = ANY($3)
+           AND (d.audience NOT IN ('care', 'branch') OR EXISTS (
+             SELECT 1 FROM deed_audience_people dap WHERE dap.deed_id = d.id AND dap.person_id = $4
+           ))`,
+      [id, caller.familyId, visibleAudiences(caller), caller.personId],
     );
     // 404 rather than 403 for an audience miss: telling a child account that an
     // adults-only story exists is itself a leak.
@@ -167,9 +174,9 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
 
     const body = (req.body ?? {}) as {
       kind?: string;
-      title?: string; whenText?: string; whenDate?: string; story?: string;
+      title?: string; whenText?: string; whenDate?: string; whereText?: string; story?: string;
       personIds?: string[]; tags?: string[]; mediaIds?: string[];
-      audience?: string; fromMessageId?: string; mayResurface?: boolean;
+      audience?: string; audiencePersonIds?: string[]; fromMessageId?: string; mayResurface?: boolean;
     };
 
     const title = body.title?.trim();
@@ -194,6 +201,10 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
     if (!["everyone", "adults", "care", "branch"].includes(audience)) {
       return reply.code(400).send({ error: "invalid audience" });
     }
+    const scopedRecipients = [...new Set(body.audiencePersonIds ?? [])];
+    if ((audience === "care" || audience === "branch") && scopedRecipients.length === 0) {
+      return reply.code(400).send({ error: "selected audience needs at least one recipient" });
+    }
 
     /**
      * Resurfacing. Grief is never resurfaced unprompted -- ideas.md calls an automated
@@ -214,15 +225,16 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
       );
 
       await client.query(
-        `INSERT INTO deeds (id, family_id, kind, title, when_text, when_date, story,
+        `INSERT INTO deeds (id, family_id, kind, title, when_text, when_date, where_text, story,
                              author_id, author_name, audience, from_message_id, may_resurface)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           deedId, caller.familyId, kind, title,
           // Lore and memories often have no meaningful date, and demanding one is what
           // stops them being written. "Undated" is an honest label, not a placeholder.
           body.whenText?.trim() || "Undated",
           body.whenDate || null,
+          body.whereText?.trim() || null,
           body.story ?? "",
           caller.personId,
           author.rows[0]?.name ?? "A family member",
@@ -231,6 +243,15 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
           mayResurface,
         ],
       );
+
+      for (const recipientId of scopedRecipients) {
+        await client.query(
+          `INSERT INTO deed_audience_people (deed_id, person_id)
+           SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM people WHERE id = $2 AND family_id = $3)
+           ON CONFLICT DO NOTHING`,
+          [deedId, recipientId, caller.familyId],
+        );
+      }
 
       // Every child row is filtered through the caller's family, so a request
       // cannot attach another family's person or media to this deed.
@@ -286,8 +307,11 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
     // Reacting requires the deed to be visible to this caller, same predicate as
     // reading it -- otherwise a child could probe for adults-only deeds by id.
     const visible = await query<{ kind: string }>(
-      `SELECT kind FROM deeds WHERE id = $1 AND family_id = $2 AND audience = ANY($3)`,
-      [id, caller.familyId, visibleAudiences(caller)],
+      `SELECT kind FROM deeds d WHERE id = $1 AND family_id = $2 AND audience = ANY($3)
+         AND (d.audience NOT IN ('care', 'branch') OR EXISTS (
+           SELECT 1 FROM deed_audience_people dap WHERE dap.deed_id = d.id AND dap.person_id = $4
+         ))`,
+      [id, caller.familyId, visibleAudiences(caller), caller.personId],
     );
     if (visible.length === 0) return reply.code(404).send({ error: "deed not found" });
 
@@ -331,8 +355,11 @@ export async function deedRoutes(app: FastifyInstance): Promise<void> {
     if (!text?.trim()) return reply.code(400).send({ error: "comment body is required" });
 
     const visible = await query(
-      `SELECT 1 FROM deeds WHERE id = $1 AND family_id = $2 AND audience = ANY($3)`,
-      [id, caller.familyId, visibleAudiences(caller)],
+      `SELECT 1 FROM deeds d WHERE id = $1 AND family_id = $2 AND audience = ANY($3)
+         AND (d.audience NOT IN ('care', 'branch') OR EXISTS (
+           SELECT 1 FROM deed_audience_people dap WHERE dap.deed_id = d.id AND dap.person_id = $4
+         ))`,
+      [id, caller.familyId, visibleAudiences(caller), caller.personId],
     );
     if (visible.length === 0) return reply.code(404).send({ error: "deed not found" });
 

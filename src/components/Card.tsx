@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import * as Haptics from "expo-haptics";
 import { colors, motion, radii, shadow, spacing } from "../theme";
+import { useReducedMotion } from "../useReducedMotion";
 
 /**
  * The base surface of the whole app.
@@ -71,6 +72,7 @@ export function Card({
   onPress, accessibilityLabel,
 }: Props) {
   const t = TONES[tone];
+  const reduceMotion = useReducedMotion();
 
   const surface = [
     styles.card,
@@ -95,7 +97,9 @@ export function Card({
         surface,
         // A whole-card press scales rather than dimming: dimming a large surface
         // looks like a rendering glitch, while a 3% scale reads as physical.
-        pressed ? { transform: [{ scale: motion.pressScale }], opacity: 0.96 } : null,
+        pressed
+          ? (reduceMotion ? { opacity: 0.9 } : { transform: [{ scale: motion.pressScale }], opacity: 0.96 })
+          : null,
       ]}
     >
       {children}

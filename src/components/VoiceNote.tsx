@@ -1,6 +1,7 @@
 import React from "react";
 import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { AppText } from "./Text";
 import { Icon } from "./Icon";
 import { colors, motion, radii, spacing, TOUCH_MIN } from "../theme";
@@ -27,9 +28,8 @@ import type { Media } from "../types";
  *   - Playback speed is a real cycling control (1x → 1.5x → 2x → 0.75x). Elders
  *     slow recordings down; teenagers speed them up. It was previously a dead label.
  *
- * Playback is still presentational -- there is no audio engine wired up yet -- but
- * the progress state is genuine, so the interaction can be felt and reviewed on a
- * device before the plumbing lands.
+ * Playback is backed by Expo Audio: progress, pause, completion and playback speed all
+ * follow the actual recording rather than a simulated timer.
  */
 
 const SPEEDS = [1, 1.5, 2, 0.75] as const;
@@ -48,7 +48,8 @@ export function VoiceNote({
   /** Collapse the transcript initially -- for long threads. */
   defaultExpanded?: boolean;
 }) {
-  const [playing, setPlaying] = React.useState(false);
+  const player = useAudioPlayer(audio.uri, { updateInterval: 200 });
+  const playback = useAudioPlayerStatus(player);
   const [expanded, setExpanded] = React.useState(defaultExpanded);
   const [speedIdx, setSpeedIdx] = React.useState(0);
 
@@ -56,35 +57,25 @@ export function VoiceNote({
   const fg = dark ? colors.inverseOnSurface : colors.onSurface;
   const meta = dark ? colors.primaryFixedDim : colors.onSurfaceFaint;
 
-  const total = audio.durationSec ?? 0;
-  /** Simulated playhead, 0..1. Real audio will replace the timer, not the UI. */
-  const [progress, setProgress] = React.useState(0);
+  const playing = playback.playing;
+  const total = playback.duration || audio.durationSec || 0;
+  const elapsed = Math.round(playback.currentTime || 0);
+  const progress = total > 0 ? Math.min(1, elapsed / total) : 0;
 
-  React.useEffect(() => {
-    if (!playing || total <= 0) return;
-    const rate = SPEEDS[speedIdx];
-    const id = setInterval(() => {
-      setProgress((p) => {
-        const next = p + (0.25 * rate) / total;
-        if (next >= 1) { setPlaying(false); return 0; }
-        return next;
-      });
-    }, 250);
-    return () => clearInterval(id);
-  }, [playing, total, speedIdx]);
-
-  const toggle = () => {
+  const toggle = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    setPlaying((p) => !p);
+    if (playing) player.pause();
+    else {
+      if (total > 0 && playback.currentTime >= total - 0.1) await player.seekTo(0);
+      player.play();
+    }
   };
-
-  const elapsed = Math.round(progress * total);
 
   return (
     <View style={[styles.wrap, dark ? styles.wrapDark : styles.wrapLight]}>
       <View style={styles.row}>
         <Pressable
-          onPress={toggle}
+          onPress={() => void toggle()}
           accessibilityRole="button"
           accessibilityLabel={
             (playing ? "Pause" : "Play") + " recording" + (label ? ": " + label : "")
@@ -124,7 +115,11 @@ export function VoiceNote({
               hitSlop={10}
               onPress={() => {
                 Haptics.selectionAsync().catch(() => {});
-                setSpeedIdx((i) => (i + 1) % SPEEDS.length);
+                setSpeedIdx((i) => {
+                  const next = (i + 1) % SPEEDS.length;
+                  player.setPlaybackRate(SPEEDS[next]);
+                  return next;
+                });
               }}
               style={({ pressed }) => [
                 styles.speed, dark && styles.speedDark, pressed && { opacity: 0.6 },

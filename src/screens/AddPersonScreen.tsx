@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Screen } from "../components/Screen";
 import { AppText } from "../components/Text";
-import { Button } from "../components/Button";
+import { FormActions } from "../components/FormActions";
 import { Avatar } from "../components/Avatar";
 import { Icon, IconBadge } from "../components/Icon";
 import {
@@ -43,10 +43,14 @@ export function AddPersonScreen({
   const [parentIds, setParentIds] = useState<string[]>([]);
   const [spouseIds, setSpouseIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  /** The last failure, shown inline above the save button until the next attempt. */
+  const [error, setError] = useState<unknown>(null);
 
   const save = async () => {
     if (saving || !name.trim()) return;
+    Keyboard.dismiss();
     setSaving(true);
+    setError(null);
     try {
       const id = await actions.addPerson({
         name: name.trim(),
@@ -59,14 +63,12 @@ export function AddPersonScreen({
         parentIds,
         spouseIds,
       });
-      if (id) onDone(id);
-      else setSaving(false);
-    } catch {
+      onDone(id);
+    } catch (err) {
+      // Inline, not an alert: an alert is a no-op on web and gone on a phone; this stays
+      // beside the button until the next try, and the form keeps every word.
       setSaving(false);
-      Alert.alert(
-        "We could not add them",
-        "Nothing has been lost. Please check your connection and try again.",
-      );
+      setError(err);
     }
   };
 
@@ -76,17 +78,19 @@ export function AddPersonScreen({
 
   return (
     <Screen
-      footer={
-        <>
-          <Button
-            title={saving ? "Adding them..." : "Add to the family"}
-            icon="check"
-            disabled={saving || !name.trim()}
-            onPress={save}
-          />
-          <Button title="Never mind" kind="quiet" icon="close" onPress={onCancel} />
-        </>
-      }
+      footer={(keyboardVisible) => (
+        <FormActions
+          keyboardVisible={keyboardVisible}
+          error={error}
+          title={saving ? "Adding them..." : "Add to the family"}
+          compactTitle={saving ? "Saving..." : "Save person"}
+          disabled={saving || !name.trim()}
+          onPress={save}
+          secondaryTitle="Never mind"
+          secondaryIcon="close"
+          onSecondary={onCancel}
+        />
+      )}
     >
       <View style={styles.head}>
         <IconBadge name="kinship" size={48} tone="mint" />

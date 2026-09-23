@@ -78,6 +78,7 @@ export interface DeedRow extends QueryResultRow {
   title: string;
   when_text: string;
   when_date: string | null;
+  where_text: string | null;
   story: string;
   author_id: string | null;
   author_name: string;
@@ -117,6 +118,7 @@ export function shapeDeed(
     title: row.title,
     whenText: row.when_text,
     ...(row.when_date ? { whenDate: row.when_date } : {}),
+    ...(row.where_text ? { whereText: row.where_text } : {}),
     story: row.story,
     personIds: parts.personIds,
     tags: parts.tags,

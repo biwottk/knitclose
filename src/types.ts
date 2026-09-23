@@ -65,6 +65,16 @@ export interface Media {
   uri: string;
   /** Seconds. Videos are capped at 60s; audio is uncapped. */
   durationSec?: number;
+  /**
+   * Transcription of an audio recording.
+   *
+   * The server has always shaped this onto media rows (server/src/shape.ts) but the type
+   * never declared it, so every caller that wanted a transcript had to carry its own copy
+   * alongside -- which is why Message has a separate `transcript` field. It belongs here:
+   * the transcript is a property of the recording, not of the thing the recording is
+   * attached to.
+   */
+  transcript?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +122,7 @@ export const AUDIENCE_LABEL: Record<Audience, string> = {
   everyone: "All family",
   adults: "Adults only",
   care: "Care circle",
-  branch: "One branch",
+  branch: "Selected relatives",
 };
 
 // ---------------------------------------------------------------------------
@@ -149,6 +159,8 @@ export interface Deed {
   whenText: string;
   /** Machine-sortable date when we can derive one. */
   whenDate?: string;
+  /** Human place: deliberately fuzzy, e.g. "Nana's kitchen" or "Amboseli". */
+  whereText?: string;
   story: string;
   /** People this deed is about. */
   personIds: string[];
@@ -595,4 +607,160 @@ export function tagLabel(tag: DeedTag): string {
 export function canView(user: CurrentUser, audience: Audience): boolean {
   if (audience === "adults") return user.role !== "child";
   return true;
+}
+// ---------------------------------------------------------------------------
+// The Archive: letters and the voice vault
+//
+// Both are HEIRLOOMS -- objects a family goes looking for deliberately, months later.
+// That is the test for what belongs in the Archive at all, and it is why each has its own
+// shape rather than being a tagged timeline entry: a letter has a sender and a date
+// received, a recipe has ingredients. See docs/archive_contents.md.
+// ---------------------------------------------------------------------------
+
+export type LetterKind = "letter" | "card" | "diary" | "note" | "telegram";
+
+export const LETTER_KIND_LABEL: Record<LetterKind, string> = {
+  letter: "Letter",
+  card: "Card",
+  diary: "Diary page",
+  note: "Note",
+  telegram: "Telegram",
+};
+
+/**
+ * A handwritten letter, card or diary page.
+ *
+ * The photograph of the ORIGINAL is the primary source -- it is in their hand -- and the
+ * transcript exists so it can be searched and read on a phone. Same division of labour as
+ * a recipe and its handwritten card.
+ */
+export interface Letter {
+  id: string;
+  kind: LetterKind;
+  title: string;
+  fromName?: string;
+  fromPersonId?: string;
+  toName?: string;
+  toPersonId?: string;
+  /** Fuzzy: "spring 1944", "postmarked but undated". */
+  whenText?: string;
+  whenDate?: string;
+  /**
+   * The typed text. Until transcriptConfirmed is true this is a DRAFT -- possibly an OCR
+   * guess -- and the UI must not present it as the writer own words.
+   */
+  transcript?: string;
+  transcriptConfirmed: boolean;
+  provenance?: string;
+  /** Who physically holds the original. Stops a family losing track of the object. */
+  heldByName?: string;
+  imageUri?: string;
+  /** Multi-page originals, in order. */
+  pages: Media[];
+  /** An elder reading it aloud: the words in a living voice that knew the writer. */
+  reading?: Media;
+  audience: Audience;
+  createdAt: string;
+}
+
+/**
+ * A recording kept in the voice vault.
+ *
+ * Not a new kind of media -- the audio lives in `media` like any other. This is the
+ * curation decision: somebody said this recording is worth finding again.
+ */
+export interface VoiceRecording {
+  id: string;
+  title: string;
+  /** Whose voice it is. The most important field here. */
+  speakerName: string;
+  speakerPersonId?: string;
+  /** The question being answered, preserved so the answer stays legible in fifty years. */
+  prompt?: string;
+  whenText?: string;
+  whenDate?: string;
+  /** Set when it was lifted out of a chat message. */
+  fromMessageId?: string;
+  audio: Media;
+  audience: Audience;
+  createdAt: string;
+}
+// ---------------------------------------------------------------------------
+// Objects & Heirlooms
+// ---------------------------------------------------------------------------
+
+export type ObjectKind =
+  | "jewellery" | "furniture" | "tool" | "textile" | "book" | "instrument"
+  | "artwork" | "crockery" | "medal" | "property" | "keepsake";
+
+export const OBJECT_KIND_LABEL: Record<ObjectKind, string> = {
+  jewellery: "Jewellery",
+  furniture: "Furniture",
+  tool: "Tool",
+  textile: "Textile",
+  book: "Book",
+  instrument: "Instrument",
+  artwork: "Artwork",
+  crockery: "Crockery",
+  medal: "Medal",
+  property: "Place",
+  keepsake: "Keepsake",
+};
+
+/**
+ * Where an object is.
+ *
+ * "lost" is a first-class state, not an omission: recording that nobody knows where the ring
+ * went is real information, and it stops the same question being asked at every funeral.
+ */
+export type ObjectStatus = "held" | "lost" | "givenAway" | "destroyed";
+
+export const OBJECT_STATUS_LABEL: Record<ObjectStatus, string> = {
+  held: "In the family",
+  lost: "Nobody knows where it is",
+  givenAway: "Passed outside the family",
+  destroyed: "Gone",
+};
+
+/** One link in the chain of people who have held an object. */
+export interface Custody {
+  id: string;
+  personId?: string;
+  holderName: string;
+  /** Fuzzy: "after the funeral" is how families actually date these. */
+  fromText?: string;
+  fromDate?: string;
+  /** How it came to them. "She left it to me" is the sentence that matters. */
+  note?: string;
+}
+
+/**
+ * A family object: the ring, the clock, the toolbox.
+ *
+ * THE CUSTODY CHAIN IS THE POINT. An heirloom differs from a merely old thing precisely by
+ * having a record of who has carried it, and "where did the ring go?" is the question this
+ * exists to answer -- a real and slightly poisonous one that an archive can defuse.
+ */
+export interface FamilyObject {
+  id: string;
+  name: string;
+  kind: ObjectKind;
+  story: string;
+  originText?: string;
+  originYear?: string;
+  originPersonId?: string;
+  originPersonName?: string;
+  /** Current holder, denormalised from the last custody entry for cheap listing. */
+  heldByPersonId?: string;
+  heldByName?: string;
+  /** "The blue box on top of the wardrobe" -- the detail that actually finds a thing. */
+  whereKept?: string;
+  status: ObjectStatus;
+  statusNote?: string;
+  imageUri?: string;
+  photos: Media[];
+  /** Oldest first, so the object reads as a provenance. */
+  custody: Custody[];
+  audience: Audience;
+  createdAt: string;
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Linking, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import {
   SafeAreaProvider,
@@ -43,8 +43,11 @@ type Phase = "checking" | "signedOut" | "onboarding" | "inApp";
  * family name chosen during onboarding is saved through the API.
  */
 function Root({
-  phase, setPhase,
-}: { phase: Phase; setPhase: (p: Phase) => void }) {
+  phase, setPhase, pendingInviteToken, clearPendingInvite,
+}: {
+  phase: Phase; setPhase: (p: Phase) => void;
+  pendingInviteToken?: string; clearPendingInvite: () => void;
+}) {
   const { refresh } = useStore();
 
   /**
@@ -77,10 +80,25 @@ function Root({
   if (phase === "signedOut") {
     return (
       <SignInScreen
-        onSignedIn={async (isNew) => {
+        initialInviteToken={pendingInviteToken}
+        onSignedIn={async (isNew, invitationJoined) => {
           // Load the family before rendering it, so no screen flashes empty state.
           await refresh();
+          if (invitationJoined) clearPendingInvite();
           setPhase(isNew ? "onboarding" : "inApp");
+        }}
+      />
+    );
+  }
+
+  // A signed-in person opening an invitation still sees and confirms the family identity.
+  if (phase === "inApp" && pendingInviteToken) {
+    return (
+      <OnboardingScreen
+        initialInviteToken={pendingInviteToken}
+        onDone={async () => {
+          clearPendingInvite();
+          await refresh();
         }}
       />
     );
@@ -183,8 +201,27 @@ function devForcedMetrics(): Metrics | undefined {
   };
 }
 
+function inviteTokenFromUrl(url: string | null): string | undefined {
+  if (!url) return undefined;
+  const match = url.match(/\/invite\/([^/?#]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+}
+
 export default function App() {
   const [phase, setPhase] = useState<Phase>("checking");
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | undefined>();
+
+  React.useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      const token = inviteTokenFromUrl(url);
+      if (token) setPendingInviteToken(token);
+    }).catch(() => {});
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      const token = inviteTokenFromUrl(url);
+      if (token) setPendingInviteToken(token);
+    });
+    return () => sub.remove();
+  }, []);
 
   /**
    * Kinship & Hearth typography: Fraunces for anything narrative, Plus Jakarta
@@ -221,9 +258,14 @@ export default function App() {
 
   const content = (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <StoreProvider>
-        <Root phase={phase} setPhase={setPhase} />
+        <Root
+          phase={phase}
+          setPhase={setPhase}
+          pendingInviteToken={pendingInviteToken}
+          clearPendingInvite={() => setPendingInviteToken(undefined)}
+        />
       </StoreProvider>
     </>
   );

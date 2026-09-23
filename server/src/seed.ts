@@ -120,6 +120,7 @@ function isoDate(value?: string): string | null {
 
 async function reset(): Promise<void> {
   // families cascades to everything else; media has no parent so it goes explicitly.
+  // letters and voice_recordings cascade from families, listed for clarity.
   await query(`DELETE FROM families`);
   await query(`DELETE FROM media`);
   await query(`DELETE FROM users`);
@@ -447,6 +448,77 @@ async function main(): Promise<void> {
     });
   }
 
+
+  // -- The Letter Box ----------------------------------------------------
+  for (const l of seed.letters) {
+    const readingId = l.reading ? await importPlaceholderAudio(familyId, l.reading) : null;
+    await query(
+      `INSERT INTO letters (id, family_id, kind, title, from_name, from_person_id,
+                            to_name, to_person_id, when_text, when_date, transcript,
+                            transcript_confirmed, provenance, held_by_name,
+                            reading_media_id, audience, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+      [
+        l.id, familyId, l.kind, l.title,
+        l.fromName ?? null, l.fromPersonId ?? null,
+        l.toName ?? null, l.toPersonId ?? null,
+        l.whenText ?? null, isoDate(l.whenDate),
+        l.transcript ?? null, l.transcriptConfirmed,
+        l.provenance ?? null, l.heldByName ?? null,
+        readingId, l.audience, seed.currentUser.personId,
+      ],
+    );
+  }
+
+  // -- The Voice Vault ---------------------------------------------------
+  for (const v of seed.voices) {
+    // The audio is a placeholder like every other seeded recording: the transcript and
+    // duration are real data the UI renders, and there are simply no bytes yet.
+    const mediaId = await importPlaceholderAudio(familyId, v.audio, v.audio.transcript);
+    await query(
+      `INSERT INTO voice_recordings (id, family_id, media_id, title, speaker_name,
+                                    speaker_person_id, prompt, when_text, when_date,
+                                    audience, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [
+        v.id, familyId, mediaId, v.title, v.speakerName,
+        v.speakerPersonId ?? null, v.prompt ?? null,
+        v.whenText ?? null, isoDate(v.whenDate),
+        v.audience, seed.currentUser.personId,
+      ],
+    );
+  }
+
+
+  // -- Objects & Heirlooms -----------------------------------------------
+  for (const o of seed.objects) {
+    await transaction(async (client) => {
+      await client.query(
+        `INSERT INTO objects (id, family_id, name, kind, story, origin_text, origin_year,
+                              origin_person_id, origin_person_name, held_by_person_id,
+                              held_by_name, where_kept, status, status_note, audience, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+        [
+          o.id, familyId, o.name, o.kind, o.story,
+          o.originText ?? null, o.originYear ?? null,
+          o.originPersonId ?? null, o.originPersonName ?? null,
+          o.heldByPersonId ?? null, o.heldByName ?? null,
+          o.whereKept ?? null, o.status, o.statusNote ?? null,
+          o.audience, seed.currentUser.personId,
+        ],
+      );
+      // The custody chain is the feature, so the fixture seeds it verbatim rather than
+      // letting the route synthesise a single entry.
+      for (const c of o.custody) {
+        await client.query(
+          `INSERT INTO object_custody (id, object_id, person_id, holder_name, from_text, note)
+           VALUES ($1,$2,$3,$4,$5,$6)`,
+          [c.id, o.id, c.personId ?? null, c.holderName, c.fromText ?? null, c.note ?? null],
+        );
+      }
+    });
+  }
+
   // -- events ------------------------------------------------------------
   await transaction(async (client) => {
     for (const e of seed.events) {
@@ -486,6 +558,9 @@ async function main(): Promise<void> {
     UNION ALL SELECT 'recipes', count(*)::text FROM recipes
     UNION ALL SELECT 'archive_photos', count(*)::text FROM archive_photos
     UNION ALL SELECT 'events', count(*)::text FROM events
+    UNION ALL SELECT 'letters', count(*)::text FROM letters
+    UNION ALL SELECT 'voices', count(*)::text FROM voice_recordings
+    UNION ALL SELECT 'objects', count(*)::text FROM objects
     ORDER BY table_name
   `);
 

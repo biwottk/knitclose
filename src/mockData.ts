@@ -1,7 +1,7 @@
 import type {
   ArchivePhoto, CareCircle, CareTask, Comment, CurrentUser, Deed, DoctorNote,
-  EmergencyCard, Family, FamilyEvent, MealSlot, Medication, Message, Nudge,
-  Person, Recipe, Thread,
+  EmergencyCard, Family, FamilyEvent, FamilyObject, Letter, MealSlot, Medication,
+  Message, Nudge, Person, Recipe, Thread, VoiceRecording,
 } from "./types";
 
 /**
@@ -531,3 +531,183 @@ export const comments: Comment[] = [
 // product copy rather than fixture data, and having screens import them from here is
 // what let this file reach the runtime at all. Nothing outside server/src/seed.ts may
 // import this module.
+// ---------------------------------------------------------------------------
+// The Letter Box
+//
+// One letter with a confirmed transcription and one WITHOUT, because the unconfirmed state
+// is a real state the UI has to look right in -- an OCR guess is a draft until a human has
+// read it against the original.
+// ---------------------------------------------------------------------------
+
+export const letters: Letter[] = [
+  {
+    id: "let1",
+    kind: "letter",
+    title: "Arthur to Ruth, the week before the wedding",
+    fromName: "Grandpa Arthur",
+    fromPersonId: "p_arthur",
+    toName: "Nana Ruth",
+    toPersonId: "p_nana",
+    whenText: "14 March 1967",
+    whenDate: "1967-03-14",
+    transcript:
+      "My dearest Ruth,\n\nI have counted it out and it is eleven days. Mother has been " +
+      "making lists at me since Sunday and I have agreed to all of it because I am not " +
+      "listening to a word.\n\nI walked past the plot by the lake again on Thursday. One " +
+      "day, Ruth. Not this year and probably not the next, but one day there will be " +
+      "something standing on it that I built, and you will complain about the door.",
+    transcriptConfirmed: true,
+    provenance: "Nana Ruth bedside drawer",
+    heldByName: "Nana Ruth",
+    pages: [],
+    audience: "everyone",
+    createdAt: "2024-06-02T10:00:00Z",
+  },
+  {
+    id: "let2",
+    kind: "card",
+    title: "Great Aunt Eleanor, Christmas card",
+    fromName: "Great Aunt Eleanor",
+    whenText: "Postmarked 1954, undated",
+    // Deliberately unconfirmed AND obviously imperfect: this is what a machine reading of
+    // difficult handwriting actually looks like, and the UI must present it as a draft.
+    transcript:
+      "Dearest all — a very happy Christmas from [illegible] and the girls. The weather " +
+      "here has been [illegible] frightful but we managed the walk on Boxing Day as always.",
+    transcriptConfirmed: false,
+    provenance: "Great Aunt Eleanor attic box (c. 1954)",
+    heldByName: "Uncle Dave",
+    pages: [],
+    audience: "everyone",
+    createdAt: "2024-07-19T16:30:00Z",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// The Voice Vault
+//
+// Both entries carry the QUESTION they answered, because an answer without its question is
+// half a record once nobody remembers what was asked.
+// ---------------------------------------------------------------------------
+
+export const voices: VoiceRecording[] = [
+  {
+    id: "vr1",
+    title: "Nana Ruth on her first job",
+    speakerName: "Nana Ruth",
+    speakerPersonId: "p_nana",
+    prompt: "What was your first job, and what did it pay?",
+    whenText: "Recorded March 2024",
+    whenDate: "2024-03-16",
+    audio: {
+      id: "a_first_job", kind: "audio", uri: "mock://voice/nana-first-job", durationSec: 214,
+      transcript:
+        "The mill office, and I was fifteen. Four pounds twelve a week and I gave three of " +
+        "it to my mother without being asked, because that is simply what you did. I bought " +
+        "a coat with the first month that was entirely the wrong colour.",
+    },
+    audience: "everyone",
+    createdAt: "2024-03-16T14:00:00Z",
+  },
+  {
+    id: "vr2",
+    title: "Uncle Dave on the attic photographs",
+    speakerName: "Uncle Dave",
+    speakerPersonId: "p_dave",
+    prompt: "What is a phrase your parents said that nobody says any more?",
+    whenText: "Recorded August 2024",
+    whenDate: "2024-08-04",
+    audio: {
+      id: "a_phrase", kind: "audio", uri: "mock://voice/dave-phrase", durationSec: 96,
+      transcript:
+        "Dad used to say a thing was going to be a fine old how do you do. Never explained " +
+        "it, never once said it about anything that turned out well.",
+    },
+    audience: "everyone",
+    createdAt: "2024-08-04T19:20:00Z",
+  },
+];
+// ---------------------------------------------------------------------------
+// Objects & Heirlooms
+//
+// One object with a real THREE-LINK custody chain (the point of the feature), and one that
+// is LOST -- because "nobody knows where it went" is a state the UI has to look right in,
+// and it is the state families most need the archive to hold.
+// ---------------------------------------------------------------------------
+
+export const objects: FamilyObject[] = [
+  {
+    id: "obj1",
+    name: "Nana Ruth's engagement ring",
+    kind: "jewellery",
+    story:
+      "Arthur paid it off over fourteen months and never told her that, though she worked " +
+      "it out from the pawnbroker's receipt he left in a coat pocket in 1969.\n\n" +
+      "She wore it every day for fifty-one years and took it off exactly twice: once for " +
+      "the knee surgery, and once to let Maya try it on.",
+    originText: "Bought in Leeds",
+    originYear: "1966",
+    originPersonId: "p_nana",
+    originPersonName: "Nana Ruth",
+    heldByPersonId: "p_nana",
+    heldByName: "Nana Ruth",
+    whereKept: "The blue box on top of the wardrobe",
+    status: "held",
+    photos: [],
+    custody: [
+      { id: "oc1", personId: "p_nana", holderName: "Nana Ruth", fromText: "1966",
+        note: "Arthur proposed on the steps of the town hall in the rain." },
+    ],
+    audience: "everyone",
+    createdAt: "2024-04-02T11:00:00Z",
+  },
+  {
+    id: "obj2",
+    name: "Grandpa Arthur's carpentry chest",
+    kind: "tool",
+    story:
+      "The chest he built the cabin out of, and then kept the tools in for forty years. " +
+      "Dave has it now and still uses the chisels, which is what Arthur would have wanted " +
+      "far more than it sitting in a case.",
+    originText: "Made it himself from the offcuts",
+    originYear: "1978",
+    originPersonId: "p_arthur",
+    originPersonName: "Grandpa Arthur",
+    heldByPersonId: "p_dave",
+    heldByName: "Uncle Dave",
+    whereKept: "His workshop in Scarborough",
+    status: "held",
+    photos: [],
+    // Three links: this is what a provenance looks like, and what a single
+    // current-holder field would have thrown away.
+    custody: [
+      { id: "oc2", personId: "p_arthur", holderName: "Grandpa Arthur", fromText: "1978" },
+      { id: "oc3", personId: "p_nana", holderName: "Nana Ruth", fromText: "After the funeral, 2018",
+        note: "She could not bear to have it moved out of the house at first." },
+      { id: "oc4", personId: "p_dave", holderName: "Uncle Dave", fromText: "Spring 2021",
+        note: "She asked him to take it because it should be used." },
+    ],
+    audience: "everyone",
+    createdAt: "2024-05-18T15:00:00Z",
+  },
+  {
+    id: "obj3",
+    name: "The Bible with the family names in the front",
+    kind: "book",
+    story:
+      "Births and marriages written inside the cover in six different hands, the earliest " +
+      "in 1871. It went missing somewhere between clearing the house and the removal van.",
+    originYear: "c. 1860",
+    // LOST -- and the note is what makes the record useful rather than just sad.
+    status: "lost",
+    statusNote:
+      "Last certainly seen at the house clearance in November 2018. Claire thinks it may " +
+      "have gone into a box of the good crockery.",
+    photos: [],
+    custody: [
+      { id: "oc5", holderName: "The Miller family", fromText: "1871" },
+    ],
+    audience: "everyone",
+    createdAt: "2024-09-30T09:00:00Z",
+  },
+];

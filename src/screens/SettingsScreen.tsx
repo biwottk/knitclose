@@ -9,6 +9,8 @@ import { Icon, IconBadge, type IconName } from "../components/Icon";
 import { colors, motion, radii, shadow, spacing, TOUCH_MIN } from "../theme";
 import { APP_NAME, PRIVACY_PROMISE } from "../config";
 import { useStore } from "../store";
+import { api } from "../api";
+import { SaveError } from "../components/SaveError";
 
 /**
  * Screen 9 -- Settings.
@@ -20,21 +22,30 @@ export function SettingsScreen({
 }: { onOpenPerson: (id: string) => void; onSignOut: () => void }) {
   const { family, currentUser, people, deeds } = useStore();
   const isAdmin = currentUser.role === "admin";
+  const [inviteBusy, setInviteBusy] = React.useState(false);
+  const [inviteError, setInviteError] = React.useState<unknown>(null);
 
   const invite = async () => {
-    // V1 shares a placeholder link. Sprint 3 replaces this with a single-use,
-    // expiring token issued by the server.
-    const code = family.name.split(" ").pop()?.toUpperCase() + "-2026";
+    if (inviteBusy) return;
+    setInviteBusy(true);
+    setInviteError(null);
     try {
+      const invitation = await api.createInvitation("member");
+      const link = `knitclose://invite/${invitation.token}`;
       await Share.share({
+        title: `Join ${family.name} on ${APP_NAME}`,
+        url: link,
         message:
-          currentUser.name + " has invited you to join " + family.name +
-          " circle on " + APP_NAME + " — a private place for our family's stories.\n\n" +
-          "Your invitation code: " + code + "\n\n" +
-          "It's completely private: only our family can see what's inside.",
+          currentUser.name + " invited you to join " + family.name +
+          " on " + APP_NAME + " — a private place for our family's stories.\n\n" +
+          "Open this invitation: " + link + "\n\n" +
+          "Or paste this one-time code in the app:\n" + invitation.token + "\n\n" +
+          "It expires in " + invitation.expiresInDays + " days and works once.",
       });
-    } catch {
-      Alert.alert("Couldn't open sharing", "Please try again.");
+    } catch (err) {
+      setInviteError(err);
+    } finally {
+      setInviteBusy(false);
     }
   };
 
@@ -56,9 +67,15 @@ export function SettingsScreen({
         </View>
       </Card>
 
+      <SaveError
+        error={inviteError}
+        title="We could not create the invitation. Nothing was shared."
+      />
+
       {/* The single most important control for the Family Champion. */}
       <Pressable
-        onPress={invite}
+        onPress={() => void invite()}
+        disabled={inviteBusy || !isAdmin}
         accessibilityRole="button"
         accessibilityLabel="Invite a new family member"
         style={({ pressed }) => [
@@ -75,7 +92,9 @@ export function SettingsScreen({
         <View style={styles.inviteRow}>
           <IconBadge name="send" size={46} tone="paper" square />
           <View style={{ flex: 1 }}>
-            <AppText variant="subtitle" color={colors.onPrimary}>Invite New Member</AppText>
+            <AppText variant="subtitle" color={colors.onPrimary}>
+              {inviteBusy ? "Creating invitation…" : "Invite New Member"}
+            </AppText>
             <AppText variant="small" color={colors.primaryFixed} style={{ marginTop: spacing.xxs }}>
               Send a private invitation link
             </AppText>
@@ -85,8 +104,8 @@ export function SettingsScreen({
       </Pressable>
 
       <Section title="My Account">
-        <Row icon="person" label="Name and email" onPress={() => notYet()} />
-        <Row icon="lock" label="Change password" onPress={() => notYet()} />
+        <Row icon="person" label="Name and email" value="Preview" onPress={() => previewFeature()} />
+        <Row icon="lock" label="Change password" value="Preview" onPress={() => previewFeature()} />
         <Row
           icon="hearth"
           label="My profile page"
@@ -97,7 +116,7 @@ export function SettingsScreen({
 
       {isAdmin ? (
         <Section title="Manage Family">
-          <Row icon="people" label={"Family members (" + people.length + ")"} onPress={() => notYet()} />
+          <Row icon="people" label={"Family members (" + people.length + ")"} value="Preview" onPress={() => previewFeature()} />
           <Row
             icon="shield"
             label="Posts needing review"
@@ -111,7 +130,7 @@ export function SettingsScreen({
               )
             }
           />
-          <Row icon="edit" label="Family name" value={family.name} onPress={() => notYet()} last />
+          <Row icon="edit" label="Family name" value="Preview" onPress={() => previewFeature()} last />
         </Section>
       ) : null}
 
@@ -124,7 +143,7 @@ export function SettingsScreen({
         <Row
           icon="download"
           label="Download all our stories"
-          value="Coming soon"
+          value="Preview"
           onPress={() =>
             Alert.alert(
               "Your data is always yours",
@@ -133,7 +152,7 @@ export function SettingsScreen({
             )
           }
         />
-        <Row icon="info" label="Help & Support" onPress={() => notYet()} last />
+        <Row icon="info" label="Help & Support" value="Preview" onPress={() => previewFeature()} last />
       </Section>
 
       <Card tone="container" elevation="flat">
@@ -158,8 +177,8 @@ export function SettingsScreen({
   );
 }
 
-function notYet() {
-  Alert.alert("Coming soon", "This part of the app is still being built.");
+function previewFeature() {
+  Alert.alert("Preview", "This is a planned feature and is not available yet. Nothing will change when you close this message.");
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

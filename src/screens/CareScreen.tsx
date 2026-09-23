@@ -1,5 +1,5 @@
 import React from "react";
-import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Animated, Easing, Pressable, StyleSheet, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Screen } from "../components/Screen";
 import { AppHeader } from "../components/AppHeader";
@@ -501,8 +501,8 @@ function DoctorsNote({ note, pastCount }: { note: DoctorNote; pastCount: number 
       <SectionHeader
         title="Latest Doctor's Note"
         icon="medical"
-        actionLabel={"Past Visits (" + pastCount + ")"}
-        onAction={() => {}}
+        actionLabel={"Preview · Past Visits (" + pastCount + ")"}
+        onAction={() => previewCare("Past visit history")}
       />
 
       {/* Nested inside another card, so it is flat: two stacked shadows read as a
@@ -529,7 +529,7 @@ function DoctorsNote({ note, pastCount }: { note: DoctorNote; pastCount: number 
 
         <View style={styles.noteFooter}>
           <AppText variant="micro">Recorded live in clinic by {note.recordedByName}</AppText>
-          <Chip label="Discuss in Chat" icon="chat" onPress={() => {}} />
+          <Chip label="Preview · Discuss in Chat" icon="chat" onPress={() => previewCare("Doctor-note discussion")}/>
         </View>
       </Card>
     </Card>
@@ -557,8 +557,8 @@ function MedicationRadar({ meds }: { meds: Medication[] }) {
       <SectionHeader
         title="Medication Radar"
         icon="pill"
-        actionLabel="Add"
-        onAction={() => {}}
+        actionLabel="Preview · Add"
+        onAction={() => previewCare("Adding medication")}
       />
 
       {meds.map((m) => {
@@ -625,10 +625,10 @@ function MedicationRadar({ meds }: { meds: Medication[] }) {
                   accessibilityLabel={"Change who collects " + m.name}
                   // 24pt of visible text plus 12pt of slop each side clears 48.
                   hitSlop={12}
-                  onPress={() => {}}
+                  onPress={() => previewCare("Changing the medication collector")}
                   style={({ pressed }) => [styles.medChange, pressed && { opacity: 0.6 }]}
                 >
-                  <AppText variant="labelSm" color={colors.secondary}>Change</AppText>
+                  <AppText variant="labelSm" color={colors.secondary}>Preview · Change</AppText>
                 </Pressable>
               </View>
             ) : null}
@@ -726,7 +726,7 @@ function MealTrain({ slots, circle }: { slots: MealSlot[]; circle: CareCircle })
             </AppText>
           </View>
         ) : null}
-        <Chip label="Propose Next Week" tone="terracotta" icon="calendar" onPress={() => {}} />
+        <Chip label="Preview · Propose Next Week" tone="terracotta" icon="calendar" onPress={() => previewCare("Proposing next week's rota")}/>
       </View>
     </Card>
   );
@@ -743,6 +743,7 @@ function UpdateBar({ personName }: { personName: string }) {
   return (
     <View style={styles.updateBar}>
       <View style={styles.updateText}>
+        <AppText variant="micro" color={colors.primaryFixedDim}>Preview</AppText>
         <AppText variant="labelSm" bold color={colors.inverseOnSurface}>
           Have an update for {personName}'s Circle?
         </AppText>
@@ -752,7 +753,7 @@ function UpdateBar({ personName }: { personName: string }) {
         </AppText>
       </View>
       <Pressable
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})}
+        onPress={() => previewCare("Recording a care update")}
         accessibilityRole="button"
         accessibilityLabel={"Record a care update for " + personName + "'s circle"}
         hitSlop={8}
@@ -770,6 +771,10 @@ function UpdateBar({ personName }: { personName: string }) {
       </Pressable>
     </View>
   );
+}
+
+function previewCare(feature: string) {
+  Alert.alert("Preview", feature + " is planned but is not available yet. Nothing will be changed.");
 }
 
 const styles = StyleSheet.create({

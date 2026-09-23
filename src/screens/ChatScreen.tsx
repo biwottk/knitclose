@@ -1,10 +1,12 @@
 import React from "react";
 import {
-  Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet,
+  FlatList, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet,
   TextInput, View,
 } from "react-native";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { AppHeader } from "../components/AppHeader";
 import { Screen } from "../components/Screen";
 import { EmptyState } from "../components/EmptyState";
@@ -16,6 +18,8 @@ import { Button } from "../components/Button";
 import { Icon, IconBadge, type IconName } from "../components/Icon";
 import { VoiceNote } from "../components/VoiceNote";
 import { PrivacyBadge } from "../components/PrivacyBadge";
+import { SaveError } from "../components/SaveError";
+import { VoiceRecorder, type RecordedVoice } from "../components/VoiceRecorder";
 import { colors, fonts, INPUT_MIN, radii, shadow, spacing, TOUCH_MIN, type } from "../theme";
 import { shortName } from "../names";
 import { newId, useStore } from "../store";
@@ -37,7 +41,14 @@ import type { Message, Thread } from "../types";
  * Threads are scoped: "Nana's Care" is a real sub-circle, not a label, because a
  * relative's blood pressure does not belong in the group everyone reads.
  */
-export function ChatScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
+export function ChatScreen({
+  onOpenProfile, initialThreadId, composeRequestId,
+}: {
+  onOpenProfile: () => void;
+  initialThreadId?: string;
+  /** Changes for every explicit Quick Share tap, even when Chat is already mounted. */
+  composeRequestId?: number;
+}) {
   const store = useStore();
   const { visibleThreads, messagesForThread, actions, currentUser } = store;
   const insets = useSafeAreaInsets();
@@ -50,20 +61,89 @@ export function ChatScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
    * Miller family -- so a new circle selected a thread that was not there. `null` is
    * the honest value, and the empty state below handles it.
    */
-  const [threadId, setThreadId] = React.useState<string | null>(threads[0]?.id ?? null);
+  const [threadId, setThreadId] = React.useState<string | null>(initialThreadId ?? threads[0]?.id ?? null);
+  const composerRef = React.useRef<TextInput>(null);
   const [draft, setDraft] = React.useState("");
-  const [holding, setHolding] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
+  const [pendingPhoto, setPendingPhoto] = React.useState<{ uri: string; mimeType: string } | null>(null);
+  const [sending, setSending] = React.useState(false);
+  const [sendError, setSendError] = React.useState<unknown>(null);
 
   const thread = threads.find((t) => t.id === threadId) ?? threads[0];
-  const messages = messagesForThread(thread?.id ?? "");
+  // Keep the same array while the composer draft changes, so typing cannot invalidate
+  // every visible message cell.
+  const messages = React.useMemo(
+    () => messagesForThread(thread?.id ?? ""),
+    [messagesForThread, thread?.id],
+  );
+  const messageListRef = React.useRef<FlatList<Message>>(null);
 
-  const send = () => {
+  React.useEffect(() => {
+    if (initialThreadId && threads.some((t) => t.id === initialThreadId)) setThreadId(initialThreadId);
+  }, [initialThreadId, threads]);
+
+  // Run after the tab has actually taken focus. A plain mount effect fires during the
+  // navigation transition and iOS/web can return focus to the screen container afterward.
+  useFocusEffect(React.useCallback(() => {
+    if (!composeRequestId) return undefined;
+    const timer = setTimeout(() => composerRef.current?.focus(), 450);
+    return () => clearTimeout(timer);
+  }, [composeRequestId, thread?.id]));
+
+  const pickPhoto = async () => {
+    setSendError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setSendError(new Error("Photo access is off. Allow photo access in your phone settings, then try again."));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"], quality: 0.85,
+    });
+    const asset = result.assets?.[0];
+    if (!result.canceled && asset) {
+      setPendingPhoto({ uri: asset.uri, mimeType: asset.mimeType ?? "image/jpeg" });
+    }
+  };
+
+  const sendVoice = async (voice: RecordedVoice) => {
+    if (!thread || sending) return;
+    setSending(true); setSendError(null);
+    try {
+      const uploaded = await actions.uploadMedia(voice.uri, voice.mimeType, voice.durationSec);
+      await actions.sendMessage(thread.id, { audioMediaId: uploaded.id });
+    } catch (err) {
+      setSendError(err);
+      throw err;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const send = async () => {
     const body = draft.trim();
-    if (!body || !thread) return;
+    if ((!body && !pendingPhoto) || !thread || sending) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    setDraft("");
-    void actions.sendMessage(thread.id, { body });
+    setSending(true);
+    setSendError(null);
+    try {
+      const uploaded = pendingPhoto
+        ? await actions.uploadMedia(pendingPhoto.uri, pendingPhoto.mimeType)
+        : undefined;
+      await actions.sendMessage(thread.id, {
+        body: body || undefined,
+        mediaIds: uploaded ? [uploaded.id] : undefined,
+      });
+      // Clear only after the server accepts it. A failed Quick Share must leave both the
+      // words and photograph exactly where the person put them.
+      setDraft("");
+      setPendingPhoto(null);
+      Keyboard.dismiss();
+    } catch (err) {
+      setSendError(err);
+    } finally {
+      setSending(false);
+    }
   };
 
   /**
@@ -127,43 +207,53 @@ export function ChatScreen({ onOpenProfile }: { onOpenProfile: () => void }) {
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
+        <FlatList
+          ref={messageListRef}
+          data={messages}
+          keyExtractor={(message) => message.id}
+          renderItem={({ item }) => (
+            <MessageBubble message={item} mine={item.authorId === currentUser.personId} />
+          )}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
           contentContainerStyle={styles.messages}
           showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.dayDivider}>
-            <Chip
-              label={"Today · " + new Date().toLocaleDateString("en-GB", {
-                weekday: "long", month: "short", day: "numeric",
-              })}
-            />
-          </View>
-
-          {thread && thread.audience !== "everyone" ? (
-            <PrivacyBadge audience={thread.audience} tone="strong" />
-          ) : null}
-
-          {messages.length === 0 ? (
-            <EmptyThread />
-          ) : (
-            messages.map((m) => (
-              <MessageBubble key={m.id} message={m} mine={m.authorId === currentUser.personId} />
-            ))
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+          keyboardShouldPersistTaps="handled"
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          onContentSizeChange={() => messageListRef.current?.scrollToEnd({ animated: false })}
+          ListHeaderComponent={(
+            <View style={styles.messageHeader}>
+              <View style={styles.dayDivider}>
+                <Chip
+                  label={"Today · " + new Date().toLocaleDateString(undefined, {
+                    weekday: "long", month: "short", day: "numeric",
+                  })}
+                />
+              </View>
+              {thread.audience !== "everyone" ? (
+                <PrivacyBadge audience={thread.audience} tone="strong" />
+              ) : null}
+            </View>
           )}
-
-          {/* The bridge between the two speeds. Offered contextually, right after
-              the material that deserves keeping -- never as a nagging banner. */}
-          {messages.some((m) => m.audio && !m.promotedToDeedId) ? (
-            <PromotePrompt messages={messages} />
-          ) : null}
-        </ScrollView>
+          ListEmptyComponent={<EmptyThread />}
+          ListFooterComponent={messages.some((m) => m.audio && !m.promotedToDeedId)
+            ? <View style={styles.messageFooter}><PromotePrompt messages={messages} /></View>
+            : null}
+        />
 
         <Composer
+          key={composeRequestId ?? "standard-composer"}
+          autoFocus={!!composeRequestId}
           draft={draft}
           onChange={setDraft}
           onSend={send}
-          holding={holding}
-          setHolding={setHolding}
+          onPickPhoto={() => void pickPhoto()}
+          pendingPhoto={pendingPhoto}
+          onRemovePhoto={() => setPendingPhoto(null)}
+          sending={sending}
+          error={sendError}
+          inputRef={composerRef}
+          onSendVoice={sendVoice}
           bottomInset={insets.bottom}
         />
       </KeyboardAvoidingView>
@@ -228,7 +318,9 @@ function EmptyThread() {
  * primary source. The transcript sits under it as a quotation, and the reaction
  * row and read receipts stay small and warm underneath.
  */
-function MessageBubble({ message, mine }: { message: Message; mine: boolean }) {
+const MessageBubble = React.memo(function MessageBubble({
+  message, mine,
+}: { message: Message; mine: boolean }) {
   const { personById, dispatch, people } = useStore();
   const author = personById(message.authorId);
   const time = new Date(message.createdAt)
@@ -366,7 +458,7 @@ function MessageBubble({ message, mine }: { message: Message; mine: boolean }) {
       ) : null}
     </View>
   );
-}
+});
 
 /**
  * Reaction key -> glyph.
@@ -405,6 +497,32 @@ function PromotePrompt({ messages }: { messages: Message[] }) {
   const [dismissed, setDismissed] = React.useState(false);
 
   if (!candidate || dismissed) return null;
+
+  /**
+   * Keep the recording itself, in the Voice Vault.
+   *
+   * Cheaper than promoting to a deed and usually the truer choice: nothing has to be framed
+   * as a story, dated, or attributed to an event -- the recording is the artefact. Idempotent
+   * server-side, so a double tap cannot shelve it twice.
+   */
+  const keepVoice = () => {
+    if (!candidate.audio) return;
+    void actions.keepVoice({
+      mediaId: candidate.audio.id,
+      // The speaker is resolved from the message author server-side; passing the name keeps
+      // the vault entry correct even if the person row is later removed.
+      speakerName: candidate.authorName,
+      title: candidate.authorName + ", " +
+        new Date(candidate.createdAt).toLocaleDateString("en-GB", {
+          month: "long", year: "numeric",
+        }),
+      whenText: new Date(candidate.createdAt).toLocaleDateString("en-GB", {
+        day: "numeric", month: "long", year: "numeric",
+      }),
+      fromMessageId: candidate.id,
+    });
+    setDismissed(true);
+  };
 
   const promote = () => {
     /**
@@ -445,7 +563,8 @@ function PromotePrompt({ messages }: { messages: Message[] }) {
         <View style={styles.promoteText}>
           <AppText variant="label">Keep this forever?</AppText>
           <AppText variant="small" color={colors.onPrimaryFixedVariant}>
-            {candidate.authorName}'s voice note fits this week's Family Journal.
+            {candidate.authorName}'s voice will scroll away from here. The archive keeps it
+            findable.
           </AppText>
         </View>
       </View>
@@ -463,8 +582,33 @@ function PromotePrompt({ messages }: { messages: Message[] }) {
           accessibilityLabel="Not now. Hide this suggestion."
           fill
         />
-        <Button title="Add to journal" icon="bookmark" onPress={promote} fill />
+        {/*
+          TWO destinations, because they mean different things.
+
+          "Keep the voice" puts the recording in the Voice Vault: the audio itself is the
+          heirloom, and ideas.md is explicit that a voice note IS a primary source. "Add to
+          journal" turns it into a dated memory in the archive timeline.
+
+          Offering only the second is what let recordings keep scrolling away -- a family had
+          to decide the note was a *story* before anything preserved it, when often the point
+          is simply that this is how she sounded.
+        */}
+        <Button
+          title="Keep the voice"
+          kind="secondary"
+          icon="voice"
+          onPress={keepVoice}
+          fill
+        />
       </View>
+
+      <Button
+        title="Or add it to the journal as a memory"
+        kind="quiet"
+        icon="bookmark"
+        small
+        onPress={promote}
+      />
     </Card>
   );
 }
@@ -478,22 +622,56 @@ function PromotePrompt({ messages }: { messages: Message[] }) {
  * member's input method is the most prominent one on screen.
  */
 function Composer({
-  draft, onChange, onSend, holding, setHolding, bottomInset,
+  autoFocus, draft, onChange, onSend, onPickPhoto, pendingPhoto, onRemovePhoto, sending, error, inputRef,
+  onSendVoice, bottomInset,
 }: {
+  autoFocus: boolean;
   draft: string;
   onChange: (s: string) => void;
-  onSend: () => void;
-  holding: boolean;
-  setHolding: (b: boolean) => void;
+  onSend: () => Promise<void>;
+  onPickPhoto: () => void;
+  pendingPhoto: { uri: string; mimeType: string } | null;
+  onRemovePhoto: () => void;
+  sending: boolean;
+  error: unknown;
+  inputRef: React.RefObject<TextInput | null>;
+  onSendVoice: (voice: RecordedVoice) => Promise<void>;
   bottomInset: number;
 }) {
+  const [typing, setTyping] = React.useState(false);
+  const textMode = typing || draft.trim().length > 0 || !!pendingPhoto;
+  const canSend = !sending && (draft.trim().length > 0 || !!pendingPhoto);
+
   return (
     <View style={[styles.composer, { paddingBottom: Math.max(spacing.sm, bottomInset) }]}>
+      <SaveError
+        error={error}
+        title="We could not send this. Your message and photo are still here."
+      />
+      {pendingPhoto ? (
+        <View style={styles.pendingPhotoRow}>
+          <Image source={{ uri: pendingPhoto.uri }} style={styles.pendingPhoto} accessibilityLabel="Photo ready to share" />
+          <View style={styles.pendingPhotoCopy}>
+            <AppText variant="labelSm">Photo ready to share</AppText>
+            <AppText variant="small" color={colors.onSurfaceVariant}>Add a note, or send it as it is.</AppText>
+          </View>
+          <Pressable
+            onPress={onRemovePhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Remove selected photo"
+            hitSlop={8}
+            style={({ pressed }) => [styles.removePhoto, pressed && { opacity: 0.7 }]}
+          >
+            <Icon name="close" size={18} color={colors.onSurfaceVariant} />
+          </Pressable>
+        </View>
+      ) : null}
       <View style={styles.composerRow}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add a photo"
-          onPress={() => {}}
+          onPress={onPickPhoto}
+          disabled={sending}
           hitSlop={6}
           style={({ pressed }) => [styles.composerIcon, pressed && { opacity: 0.7 }]}
         >
@@ -501,61 +679,54 @@ function Composer({
         </Pressable>
 
         <TextInput
+          ref={inputRef}
+          autoFocus={autoFocus}
           value={draft}
           onChangeText={onChange}
-          placeholder="Write to the family…"
+          editable={!sending}
+          placeholder={sending ? "Sending…" : "Write to the family…"}
           placeholderTextColor={colors.outline}
           style={styles.input}
           multiline
           accessibilityLabel="Message the family"
-          onSubmitEditing={onSend}
+          onFocus={() => setTyping(true)}
+          onBlur={() => setTyping(false)}
+          // The keyboard itself now has a labelled Send key. It sends and closes,
+          // instead of inserting an unexplained newline while the large helper panel
+          // continues to crowd the conversation.
+          returnKeyType="send"
+          submitBehavior="blurAndSubmit"
+          onSubmitEditing={() => { void onSend(); }}
         />
 
         <Pressable
-          onPress={onSend}
-          disabled={!draft.trim()}
+          onPress={() => void onSend()}
+          disabled={!canSend}
           accessibilityRole="button"
-          accessibilityLabel="Send message"
-          accessibilityState={{ disabled: !draft.trim() }}
+          accessibilityLabel={sending ? "Sending message" : "Send message"}
+          accessibilityState={{ disabled: !canSend, busy: sending }}
           hitSlop={6}
           style={({ pressed }) => [
             styles.sendButton,
-            !draft.trim() && styles.sendDisabled,
+            !canSend && styles.sendDisabled,
             pressed && { opacity: 0.8, transform: [{ scale: 0.94 }] },
           ]}
         >
           <Icon
             name="send"
             size={19}
-            color={draft.trim() ? colors.onPrimary : colors.onSurfaceFaint}
+            color={canSend ? colors.onPrimary : colors.onSurfaceFaint}
           />
         </Pressable>
       </View>
 
-      <Pressable
-        onPressIn={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-          setHolding(true);
-        }}
-        onPressOut={() => setHolding(false)}
-        accessibilityRole="button"
-        accessibilityLabel="Hold to speak a voice note. It will be transcribed for you."
-        style={[styles.holdBar, holding && styles.holdBarActive]}
-      >
-        <View style={styles.holdIcon}>
-          <Icon name="voice" size={20} color={colors.secondary} />
-        </View>
-        <View style={styles.holdLabels}>
-          <AppText variant="label" color={colors.onSecondaryFixed}>
-            {holding ? "Listening… release to send" : "Hold to speak a voice note"}
-          </AppText>
-          {/* Sentence case deliberately: this is a reassurance, and ALL-CAPS
-              reads as shouting at exactly the person it is trying to help. */}
-          <AppText variant="small" color={colors.onSecondaryFixedVariant}>
-            Grandparents: just hold down and talk naturally
-          </AppText>
-        </View>
-      </Pressable>
+      {!textMode ? (
+        <VoiceRecorder
+          prompt="Record a voice note"
+          disabled={sending}
+          onUse={onSendVoice}
+        />
+      ) : null}
     </View>
   );
 }
@@ -589,7 +760,9 @@ const styles = StyleSheet.create({
   },
   threadCountOn: { backgroundColor: "rgba(255,255,255,0.2)" },
 
-  messages: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.lg },
+  messages: { padding: spacing.md, paddingBottom: spacing.lg, flexGrow: 1 },
+  messageHeader: { gap: spacing.md, marginBottom: spacing.md },
+  messageFooter: { marginTop: spacing.md },
   dayDivider: { alignItems: "center" },
 
   empty: { gap: spacing.sm },
@@ -635,6 +808,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 4, paddingTop: spacing.sm + 2,
     gap: spacing.sm + 2,
     ...shadow.floating,
+  },
+  pendingPhotoRow: {
+    flexDirection: "row", alignItems: "center", gap: spacing.sm,
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: radii.inner,
+    padding: spacing.sm,
+  },
+  pendingPhoto: { width: 52, height: 52, borderRadius: radii.inner },
+  pendingPhotoCopy: { flex: 1, minWidth: 0, gap: 1 },
+  removePhoto: {
+    width: TOUCH_MIN, height: TOUCH_MIN, borderRadius: TOUCH_MIN / 2,
+    alignItems: "center", justifyContent: "center",
   },
   composerRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
   composerIcon: {

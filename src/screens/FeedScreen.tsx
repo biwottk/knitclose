@@ -38,8 +38,10 @@ export function FeedScreen({
       <FlatList
         data={sorted}
         keyExtractor={(d) => d.id}
-        // No navigation header on tab screens, so the status bar area is ours to clear.
-        contentContainerStyle={[styles.list, { paddingTop: insets.top + spacing.md }]}
+        // This is a pushed screen with a native-stack header, so the header already owns
+        // the status-bar inset. Adding it again left a conspicuous blank band above the
+        // journal and made the destination feel detached from the button that opened it.
+        contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={{ gap: spacing.md }}>
             <View style={styles.header}>

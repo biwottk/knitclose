@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, useColorScheme, useWindowDimensions } from "react-native";
 import { NavigationContainer, type Theme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -19,6 +19,8 @@ import { AddDeedScreen } from "./screens/AddDeedScreen";
 import { AddMemoryScreen } from "./screens/AddMemoryScreen";
 import { AddPersonScreen } from "./screens/AddPersonScreen";
 import { AddRecipeScreen } from "./screens/AddRecipeScreen";
+import { AddLetterScreen } from "./screens/AddLetterScreen";
+import { AddObjectScreen } from "./screens/AddObjectScreen";
 import { DeedSharedScreen } from "./screens/DeedSharedScreen";
 import { FeedScreen } from "./screens/FeedScreen";
 
@@ -51,13 +53,22 @@ export type RootStackParams = {
   AddMemory: { kind?: MemoryKind } | undefined;
   AddPerson: undefined;
   AddRecipe: undefined;
+  AddLetter: undefined;
+  AddObject: undefined;
   DeedShared: { deedId: string };
   Settings: undefined;
   Feed: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParams>();
-const Tabs = createBottomTabNavigator();
+type TabParams = {
+  Hearth: undefined;
+  Chat: { threadId?: string; intent?: "compose"; requestId?: number } | undefined;
+  Care: undefined;
+  Archive: undefined;
+  Kinship: undefined;
+};
+const Tabs = createBottomTabNavigator<TabParams>();
 
 const navTheme: Theme = {
   dark: false,
@@ -88,10 +99,15 @@ const navTheme: Theme = {
 function TabsNavigator({
   onSignOut, onOpenSettings,
 }: { onSignOut: () => void; onOpenSettings: () => void }) {
+  const { width } = useWindowDimensions();
+  const expandedAndroid = Platform.OS === "android" && width >= 800;
   return (
     <Tabs.Navigator
       tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{
+        headerShown: false,
+        tabBarPosition: expandedAndroid ? "left" : "bottom",
+      }}
     >
       <Tabs.Screen
         name="Hearth"
@@ -104,8 +120,9 @@ function TabsNavigator({
             // not a "great deed", and sending everything through the wizard is what made
             // the archive a highlight reel.
             onAddDeed={() => navigation.navigate("AddMemory")}
-            onQuickShare={() => navigation.navigate("Chat")}
-            onOpenChat={() => navigation.navigate("Chat")}
+            onOpenJournal={() => navigation.navigate("Feed")}
+            onQuickShare={() => navigation.navigate("Chat", { intent: "compose", requestId: Date.now() })}
+            onOpenChat={(threadId) => navigation.navigate("Chat", { threadId })}
             onOpenCare={() => navigation.navigate("Care")}
             onOpenPerson={(personId) => navigation.navigate("Profile", { personId })}
             onOpenProfile={onOpenSettings}
@@ -117,7 +134,13 @@ function TabsNavigator({
         name="Chat"
         options={{ tabBarLabel: "Chat" }}
       >
-        {() => <ChatScreen onOpenProfile={onOpenSettings} />}
+        {({ route }) => (
+          <ChatScreen
+            onOpenProfile={onOpenSettings}
+            initialThreadId={route.params?.threadId}
+            composeRequestId={route.params?.intent === "compose" ? route.params.requestId : undefined}
+          />
+        )}
       </Tabs.Screen>
 
       <Tabs.Screen
@@ -141,6 +164,10 @@ function TabsNavigator({
           <ArchiveScreen
             onOpenProfile={onOpenSettings}
             onAddRecipe={() => navigation.navigate("AddRecipe")}
+            onAddLetter={() => navigation.navigate("AddLetter")}
+            onAddObject={() => navigation.navigate("AddObject")}
+            // The voice vault is fed from Chat, where voice notes are actually recorded.
+            onOpenChat={() => navigation.navigate("Chat")}
           />
         )}
       </Tabs.Screen>
@@ -161,8 +188,10 @@ function TabsNavigator({
 }
 
 export function RootNavigator({ onSignOut }: { onSignOut: () => void }) {
+  const scheme = useColorScheme();
+  const theme = React.useMemo<Theme>(() => ({ ...navTheme, dark: scheme === "dark" }), [scheme]);
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={theme}>
       <Stack.Navigator
         screenOptions={{
           /**
@@ -195,7 +224,7 @@ export function RootNavigator({ onSignOut }: { onSignOut: () => void }) {
           )}
         </Stack.Screen>
 
-        <Stack.Screen name="DeedDetail" options={{ title: "A Great Deed" }}>
+        <Stack.Screen name="DeedDetail" options={{ title: "A Family Story" }}>
           {({ route, navigation }) => (
             <DeedDetailScreen
               deedId={route.params.deedId}
@@ -304,6 +333,36 @@ export function RootNavigator({ onSignOut }: { onSignOut: () => void }) {
           )}
         </Stack.Screen>
 
+        <Stack.Screen
+          name="AddLetter"
+          options={{
+            title: "Add a letter",
+            presentation: Platform.OS === "ios" ? "modal" : "card",
+          }}
+        >
+          {({ navigation }) => (
+            <AddLetterScreen
+              onDone={() => navigation.goBack()}
+              onCancel={() => navigation.goBack()}
+            />
+          )}
+        </Stack.Screen>
+
+        <Stack.Screen
+          name="AddObject"
+          options={{
+            title: "Add an object",
+            presentation: Platform.OS === "ios" ? "modal" : "card",
+          }}
+        >
+          {({ navigation }) => (
+            <AddObjectScreen
+              onDone={() => navigation.goBack()}
+              onCancel={() => navigation.goBack()}
+            />
+          )}
+        </Stack.Screen>
+
         {/* The peak moment. No header: nothing competes with the celebration. */}
         <Stack.Screen
           name="DeedShared"
@@ -317,9 +376,9 @@ export function RootNavigator({ onSignOut }: { onSignOut: () => void }) {
             <DeedSharedScreen
               deedId={route.params.deedId}
               onDone={() => navigation.popTo("Tabs")}
-              onViewDeed={(deedId) => {
+              onOpenJournal={() => {
                 navigation.popTo("Tabs");
-                navigation.navigate("DeedDetail", { deedId });
+                navigation.navigate("Feed");
               }}
             />
           )}

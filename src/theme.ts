@@ -1,3 +1,16 @@
+import { Appearance, DynamicColorIOS, Platform } from "react-native";
+
+/** Semantic brand color that follows the operating-system appearance. */
+function adaptiveColor(light: string, dark: string, highContrastDark = dark): string {
+  if (Platform.OS === "ios") {
+    return DynamicColorIOS({ light, dark, highContrastLight: light, highContrastDark }) as unknown as string;
+  }
+  const darkAtLaunch = Platform.OS === "web"
+    ? typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    : Appearance.getColorScheme() === "dark";
+  return darkAtLaunch ? dark : light;
+}
+
 /**
  * Design tokens -- "Kinship & Hearth", 2020s refresh.
  *
@@ -37,28 +50,25 @@
  */
 const surface = {
   /** App canvas -- warm porcelain. */
-  surface: "#FCF9F6",
-  surfaceDim: "#EFE7E0",
-  /** Cards. Pure white reads as "clean paper" against the warm canvas. */
-  surfaceLowest: "#FFFFFF",
-  surfaceLow: "#FAF5F1",
-  surfaceContainer: "#F4EDE7",
-  surfaceHigh: "#EDE4DC",
-  surfaceHighest: "#E5DAD1",
-  /** Dark inverse surface: espresso, for inverted bubbles and sheets. */
-  inverseSurface: "#2B2622",
-  inverseOnSurface: "#F7F1EC",
+  surface: adaptiveColor("#FCF9F6", "#151311", "#0D0C0B"),
+  surfaceDim: adaptiveColor("#EFE7E0", "#100E0D"),
+  /** Cards step upward through warm espresso in dark appearance. */
+  surfaceLowest: adaptiveColor("#FFFFFF", "#1F1B18"),
+  surfaceLow: adaptiveColor("#FAF5F1", "#211D1A"),
+  surfaceContainer: adaptiveColor("#F4EDE7", "#2A2521"),
+  surfaceHigh: adaptiveColor("#EDE4DC", "#342E29"),
+  surfaceHighest: adaptiveColor("#E5DAD1", "#403831"),
+  inverseSurface: adaptiveColor("#2B2622", "#F7F1EC"),
+  inverseOnSurface: adaptiveColor("#F7F1EC", "#2B2622"),
 };
 
 /** Ink. Espresso rather than pure black -- less eye strain on cheap screens. */
 const ink = {
-  onSurface: "#1C1917",
-  onSurfaceVariant: "#5A524C",
-  /** Metadata that must stay legible but recede. */
-  onSurfaceFaint: "#857A72",
-  outline: "#8A807A",
-  /** Hairlines. Only where a real edge is needed. */
-  outlineVariant: "#E7DED6",
+  onSurface: adaptiveColor("#1C1917", "#F7F1EC", "#FFFFFF"),
+  onSurfaceVariant: adaptiveColor("#5A524C", "#D0C4BB", "#E2D8D0"),
+  onSurfaceFaint: adaptiveColor("#6D625B", "#B9ACA3", "#D0C5BD"),
+  outline: adaptiveColor("#706761", "#B8ACA4", "#D0C5BD"),
+  outlineVariant: adaptiveColor("#E7DED6", "#4A423C", "#625850"),
 };
 
 /**
@@ -67,17 +77,15 @@ const ink = {
  * archive/heirloom framing.
  */
 const primary = {
-  primary: "#1A4230",
-  onPrimary: "#FFFFFF",
-  /** Slightly lifted pine for large fills and dark cards. */
-  primaryContainer: "#24543E",
-  onPrimaryContainer: "#B8D5C5",
-  /** Pale mint wash for tints and selected chips. */
-  primaryFixed: "#D6EADD",
-  primaryFixedDim: "#A9CBB8",
-  onPrimaryFixed: "#08251A",
-  onPrimaryFixedVariant: "#2A5C44",
-  inversePrimary: "#A9CBB8",
+  primary: adaptiveColor("#1A4230", "#A9CBB8", "#C3E4D0"),
+  onPrimary: adaptiveColor("#FFFFFF", "#102C20"),
+  primaryContainer: adaptiveColor("#24543E", "#2E6148"),
+  onPrimaryContainer: adaptiveColor("#B8D5C5", "#E0F2E7"),
+  primaryFixed: adaptiveColor("#D6EADD", "#233A30"),
+  primaryFixedDim: adaptiveColor("#A9CBB8", "#527562"),
+  onPrimaryFixed: adaptiveColor("#08251A", "#E5F4EB"),
+  onPrimaryFixedVariant: adaptiveColor("#2A5C44", "#B8D5C5"),
+  inversePrimary: adaptiveColor("#A9CBB8", "#24543E"),
 };
 
 /**
@@ -86,14 +94,15 @@ const primary = {
  * live/urgent care states, and milestone moments.
  */
 const secondary = {
-  secondary: "#C1542F",
-  onSecondary: "#FFFFFF",
-  secondaryContainer: "#E4753F",
-  onSecondaryContainer: "#5E2109",
-  secondaryFixed: "#FCE3D6",
-  secondaryFixedDim: "#F3BFA5",
-  onSecondaryFixed: "#431604",
-  onSecondaryFixedVariant: "#8E3A18",
+  /** Deepened slightly for accessible small text: 5.62:1 on the app canvas. */
+  secondary: adaptiveColor("#A94524", "#F3A07A", "#FFC0A3"),
+  onSecondary: adaptiveColor("#FFFFFF", "#4B1606"),
+  secondaryContainer: adaptiveColor("#E4753F", "#7A321A"),
+  onSecondaryContainer: adaptiveColor("#5E2109", "#FFDCCB"),
+  secondaryFixed: adaptiveColor("#FCE3D6", "#4A271A"),
+  secondaryFixedDim: adaptiveColor("#F3BFA5", "#80503A"),
+  onSecondaryFixed: adaptiveColor("#431604", "#FFE9DF"),
+  onSecondaryFixedVariant: adaptiveColor("#8E3A18", "#F3BFA5"),
 };
 
 /**
@@ -101,21 +110,21 @@ const secondary = {
  * Deliberately never alarmist: amber nudges, it does not shout.
  */
 const tertiary = {
-  tertiary: "#8A5A0B",
-  onTertiary: "#FFFFFF",
-  tertiaryContainer: "#B57A15",
-  onTertiaryContainer: "#FFF0D2",
-  tertiaryFixed: "#FDEBC8",
-  tertiaryFixedDim: "#F2CE87",
-  onTertiaryFixed: "#2E1D00",
-  onTertiaryFixedVariant: "#6B4506",
+  tertiary: adaptiveColor("#8A5A0B", "#F2CE87"),
+  onTertiary: adaptiveColor("#FFFFFF", "#3A2603"),
+  tertiaryContainer: adaptiveColor("#B57A15", "#6B4506"),
+  onTertiaryContainer: adaptiveColor("#FFF0D2", "#FFF0D2"),
+  tertiaryFixed: adaptiveColor("#FDEBC8", "#423319"),
+  tertiaryFixedDim: adaptiveColor("#F2CE87", "#725B2E"),
+  onTertiaryFixed: adaptiveColor("#2E1D00", "#FFF0D2"),
+  onTertiaryFixedVariant: adaptiveColor("#6B4506", "#F2CE87"),
 };
 
 const error = {
-  error: "#B3261E",
-  onError: "#FFFFFF",
-  errorContainer: "#FCDAD6",
-  onErrorContainer: "#8C1D18",
+  error: adaptiveColor("#B3261E", "#FFB4AB"),
+  onError: adaptiveColor("#FFFFFF", "#690005"),
+  errorContainer: adaptiveColor("#FCDAD6", "#4A1715"),
+  onErrorContainer: adaptiveColor("#8C1D18", "#FFDAD6"),
 };
 
 export const colors = {
@@ -127,11 +136,10 @@ export const colors = {
   ...error,
 
   /** Warm hairline. Used sparingly now -- depth comes from shadow and tone. */
-  border: "#EDE4DC",
-  /** A stronger rule, for genuine structural division (composer, tab bar). */
-  borderStrong: "#E0D5CB",
-  white: "#FFFFFF",
-  surfaceTint: "#2A5C44",
+  border: adaptiveColor("#EDE4DC", "#3D3631"),
+  borderStrong: adaptiveColor("#E0D5CB", "#554B44"),
+  white: adaptiveColor("#FFFFFF", "#FFFFFF"),
+  surfaceTint: adaptiveColor("#2A5C44", "#A9CBB8"),
 
   /** Scrim keeps warmth: espresso at 45%, never a cold neutral grey. */
   scrim: "rgba(28, 25, 23, 0.45)",

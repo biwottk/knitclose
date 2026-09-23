@@ -9,7 +9,7 @@ import {
   MessageCircle, MessageSquareText, Moon, Music, Network, Notebook, Package,
   PartyPopper, Pause, PenLine, Phone, Pill, Play, Plus, Quote, Scroll, Search,
   Send, Settings, Share2, Shield, ShieldCheck, SlidersHorizontal, Smile,
-  Sparkles, Star, Stethoscope, Sun, Sunrise, Sunset, Trash2, TriangleAlert,
+  Sparkles, Square, Star, Stethoscope, Sun, Sunrise, Sunset, Trash2, TriangleAlert,
   Utensils, Video, Volume2, Waves, X, Zap,
 } from "lucide-react-native";
 import { colors, radii } from "../theme";
@@ -38,7 +38,7 @@ export type IconName =
   // Actions
   | "voice" | "camera" | "photo" | "send" | "add" | "close" | "check"
   | "checkAll" | "edit" | "search" | "settings" | "share" | "download"
-  | "trash" | "play" | "pause" | "speed" | "volume" | "waveform"
+  | "trash" | "play" | "pause" | "stop" | "speed" | "volume" | "waveform"
   | "bookmark" | "promote" | "filter" | "info"
   // Chevrons
   | "chevronDown" | "chevronUp" | "chevronLeft" | "chevronRight"
@@ -78,6 +78,7 @@ const MAP: Record<IconName, LucideIcon> = {
   trash: Trash2,
   play: Play,
   pause: Pause,
+  stop: Square,
   speed: Zap,
   volume: Volume2,
   waveform: Waves,

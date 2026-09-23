@@ -14,8 +14,8 @@ import { NativeModules, Platform } from "react-native";
 import Constants from "expo-constants";
 import type {
   ArchivePhoto, CareCircle, CareTask, Comment, CurrentUser, Deed, DoctorNote,
-  EmergencyCard, Family, FamilyEvent, MealSlot, Medication, Message, Person,
-  Recipe, Thread,
+  EmergencyCard, Family, FamilyEvent, FamilyObject, Letter, MealSlot, Medication,
+  Message, Person, Recipe, Thread, VoiceRecording,
 } from "./types";
 
 /**
@@ -212,6 +212,40 @@ async function request<T>(
   return payload as T;
 }
 
+/**
+ * POST a local file by uri, streamed by the native layer (see `uploadMedia`).
+ *
+ * Deliberately mirrors `request`: same base URL, same bearer header, same ApiError on a
+ * non-2xx, same "cannot reach the server at <address>" message on a transport failure.
+ * A second HTTP path that reports errors differently would be a support headache.
+ *
+ * Uses XMLHttpRequest rather than fetch because RN's XHR is the layer that understands a
+ * `{ uri }` body; its fetch polyfill stringifies unknown body objects.
+ */
+function uploadByUri<T>(path: string, uri: string, headers: Record<string, string>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE_URL}${path}`);
+    if (token) xhr.setRequestHeader("authorization", `Bearer ${token}`);
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+
+    xhr.onload = () => {
+      let payload: unknown;
+      try { payload = xhr.responseText ? JSON.parse(xhr.responseText) : undefined; } catch { payload = undefined; }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(payload as T);
+      const message = (payload as { error?: string })?.error ?? `upload failed (${xhr.status})`;
+      if (xhr.status === 401) void setToken(null);
+      reject(new ApiError(xhr.status, message));
+    };
+    xhr.onerror = () => reject(new ApiError(0,
+      `Cannot reach the server at ${API_BASE_URL} to upload the photo. Is the API running?`));
+    xhr.ontimeout = () => reject(new ApiError(0, "The upload took too long. Please try again."));
+
+    // RN-specific body shape: the native side opens the file and streams it.
+    xhr.send({ uri } as unknown as XMLHttpRequestBodyInit);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
@@ -278,6 +312,20 @@ export const api = {
     return (await request<{ family: Family }>("/family", { method: "PATCH", body: { name } })).family;
   },
 
+  async previewInvitation(token: string): Promise<{
+    familyName: string; inviterName: string; role: string; expiresAt: string;
+  }> {
+    return request(`/family/invitations/${encodeURIComponent(token)}/preview`);
+  },
+
+  /** Redeem for the currently signed-in account and switch its active family token. */
+  async redeemInvitation(token: string): Promise<void> {
+    const result = await request<{ token: string; familyId: string }>(
+      `/family/invitations/${encodeURIComponent(token)}/redeem`, { method: "POST" },
+    );
+    await setToken(result.token);
+  },
+
   /** Mint a single-use invitation. Returns the token to put in a share sheet. */
   async createInvitation(role: "admin" | "member" | "child" = "member"): Promise<{ token: string; expiresInDays: number }> {
     return request<{ token: string; expiresInDays: number }>("/family/invitations", {
@@ -326,9 +374,10 @@ export const api = {
 
   async addDeed(input: {
     kind?: string;
-    title: string; whenText: string; whenDate?: string; story?: string;
+    title: string; whenText: string; whenDate?: string; whereText?: string; story?: string;
     personIds?: string[]; tags?: string[]; mediaIds?: string[];
-    audience?: string; fromMessageId?: string; mayResurface?: boolean;
+    audience?: string; audiencePersonIds?: string[];
+    fromMessageId?: string; mayResurface?: boolean;
   }): Promise<string> {
     return (await request<{ id: string }>("/deeds", { method: "POST", body: input })).id;
   },
@@ -430,6 +479,80 @@ export const api = {
     await request(`/archive/photos/${photoId}/clues`, { method: "POST", body: { body } });
   },
 
+  // -------------------------------------------------------------------------
+  // The Letter Box
+  // -------------------------------------------------------------------------
+
+  async letters(): Promise<Letter[]> {
+    return (await request<{ letters: Letter[] }>("/letters")).letters;
+  },
+
+  async addLetter(input: {
+    kind?: string; title: string; fromName?: string; fromPersonId?: string;
+    toName?: string; toPersonId?: string; whenText?: string; whenDate?: string;
+    transcript?: string; transcriptConfirmed?: boolean; provenance?: string;
+    heldByName?: string; imageMediaId?: string; readingMediaId?: string;
+    pageMediaIds?: string[]; audience?: string;
+  }): Promise<string> {
+    return (await request<{ id: string }>("/letters", { method: "POST", body: input })).id;
+  },
+
+  /** Correct or confirm a transcription -- the human-in-the-loop step. */
+  async updateTranscript(letterId: string, input: { transcript?: string; confirmed?: boolean }): Promise<void> {
+    await request(`/letters/${letterId}/transcript`, { method: "PATCH", body: input });
+  },
+
+  // -------------------------------------------------------------------------
+  // Objects & Heirlooms
+  // -------------------------------------------------------------------------
+
+  async objects(): Promise<FamilyObject[]> {
+    return (await request<{ objects: FamilyObject[] }>("/objects")).objects;
+  },
+
+  async addObject(input: {
+    name: string; kind?: string; story?: string;
+    originText?: string; originYear?: string; originPersonId?: string;
+    heldByPersonId?: string; heldByName?: string; whereKept?: string;
+    status?: string; statusNote?: string;
+    imageMediaId?: string; photoMediaIds?: string[]; audience?: string;
+  }): Promise<string> {
+    return (await request<{ id: string }>("/objects", { method: "POST", body: input })).id;
+  },
+
+  /** Hand it on. Appends to the custody chain and moves the current holder. */
+  async handOnObject(objectId: string, input: {
+    personId?: string; holderName?: string; fromText?: string;
+    fromDate?: string; note?: string; whereKept?: string;
+  }): Promise<string> {
+    return (await request<{ id: string }>(`/objects/${objectId}/custody`, {
+      method: "POST", body: input,
+    })).id;
+  },
+
+  async setObjectStatus(objectId: string, status: string, statusNote?: string): Promise<void> {
+    await request(`/objects/${objectId}/status`, {
+      method: "PATCH", body: { status, statusNote },
+    });
+  },
+
+  // -------------------------------------------------------------------------
+  // The Voice Vault
+  // -------------------------------------------------------------------------
+
+  /** Kept recordings, plus the prompts nobody has answered yet. */
+  async voices(): Promise<{ voices: VoiceRecording[]; openPrompts: string[] }> {
+    return request<{ voices: VoiceRecording[]; openPrompts: string[] }>("/voices");
+  },
+
+  /** Promote a recording into the vault. Idempotent: keeping twice is the same as once. */
+  async keepVoice(input: {
+    mediaId: string; title?: string; speakerName?: string; speakerPersonId?: string;
+    prompt?: string; whenText?: string; fromMessageId?: string; audience?: string;
+  }): Promise<string> {
+    return (await request<{ id: string }>("/voices", { method: "POST", body: input })).id;
+  },
+
   async events(): Promise<FamilyEvent[]> {
     return (await request<{ events: FamilyEvent[] }>("/events")).events;
   },
@@ -454,20 +577,31 @@ export const api = {
    * Upload one file.
    *
    * Takes a local uri (what expo-image-picker hands back) and posts the raw bytes.
-   * The fetch/blob dance is deliberate: React Native's fetch can read a file:// uri
-   * into a blob, which avoids base64 (a 33% size increase and a large string in JS
-   * memory for what may be a 60-second video).
+   *
+   * TWO PATHS, and the split is the fix for "uploading a photo fails":
+   *
+   * - NATIVE streams the file by uri through React Native's own XMLHttpRequest, which
+   *   accepts `{ uri }` as a body and has the native side read the file directly. The
+   *   previous approach -- `fetch(uri)` then `.blob()` -- is not reliable for local
+   *   files: on Android `fetch('file://...')` rejects outright, and on iOS a Blob body
+   *   lets the network layer substitute its own Content-Type, so the API answered 415
+   *   even though the server was healthy. Streaming also avoids reading a 60-second
+   *   video into JS memory (and avoids base64's 33% inflation).
+   *
+   * - WEB has no file:// uris -- the picker returns a blob: or data: url that
+   *   `fetch` reads fine -- so the blob path stays for the browser only.
    */
   async uploadMedia(uri: string, contentType: string, durationSec?: number): Promise<{ id: string; uri: string }> {
-    const fileRes = await fetch(uri);
-    const blob = await fileRes.blob();
-
     const headers: Record<string, string> = { "content-type": contentType };
     if (durationSec) headers["x-duration-sec"] = String(durationSec);
 
-    return request<{ id: string; uri: string }>("/media", {
-      method: "POST", headers, raw: blob,
-    });
+    if (Platform.OS === "web") {
+      const fileRes = await fetch(uri);
+      const blob = await fileRes.blob();
+      return request<{ id: string; uri: string }>("/media", { method: "POST", headers, raw: blob });
+    }
+
+    return uploadByUri<{ id: string; uri: string }>("/media", uri, headers);
   },
 
   /** Re-sign an expired media URL without refetching its parent entity. */

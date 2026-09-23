@@ -25,7 +25,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { config } from "./config.ts";
+import { config, currentStoragePublicUrl } from "./config.ts";
 
 const s3 = new S3Client({
   region: config.storage.region,
@@ -51,22 +51,33 @@ const s3 = new S3Client({
  * A presigned URL's signature covers the host header, so a URL signed for
  * 'localhost:9002' is invalid when a physical device requests it from the LAN IP --
  * and the failure is a 403 on every image, which looks like a bug in the app.
+ *
+ * Keyed by public URL and built lazily, because in development that URL follows the
+ * machine's LAN address and the address can change under a long-running process (see
+ * currentStoragePublicUrl). A signer cached at boot kept minting URLs for a host that no
+ * longer existed.
  */
-const signer =
-  config.storage.publicUrl === config.storage.endpoint
-    ? s3
-    : new S3Client({
-        region: config.storage.region,
-        endpoint: config.storage.publicUrl,
-        forcePathStyle: Boolean(config.storage.endpoint),
-        credentials:
-          config.storage.accessKeyId && config.storage.secretAccessKey
-            ? {
-                accessKeyId: config.storage.accessKeyId,
-                secretAccessKey: config.storage.secretAccessKey,
-              }
-            : undefined,
-      });
+const signers = new Map<string, S3Client>();
+function signerFor(publicUrl: string): S3Client {
+  if (publicUrl === config.storage.endpoint) return s3;
+  let client = signers.get(publicUrl);
+  if (!client) {
+    client = new S3Client({
+      region: config.storage.region,
+      endpoint: publicUrl,
+      forcePathStyle: Boolean(config.storage.endpoint),
+      credentials:
+        config.storage.accessKeyId && config.storage.secretAccessKey
+          ? {
+              accessKeyId: config.storage.accessKeyId,
+              secretAccessKey: config.storage.secretAccessKey,
+            }
+          : undefined,
+    });
+    signers.set(publicUrl, client);
+  }
+  return client;
+}
 
 /** Create the bucket when missing. Idempotent; a no-op against a real S3 bucket. */
 export async function ensureBucket(): Promise<void> {
@@ -120,7 +131,7 @@ export async function putObject(
 /** A short-lived signed GET. The only way media is ever read. */
 export async function signedGetUrl(key: string): Promise<string> {
   return getSignedUrl(
-    signer,
+    signerFor(currentStoragePublicUrl()),
     new GetObjectCommand({ Bucket: config.storage.bucket, Key: key }),
     { expiresIn: config.storage.signedUrlTtlSec },
   );

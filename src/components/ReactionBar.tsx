@@ -6,6 +6,7 @@ import { Icon, type IconName } from "./Icon";
 import { colors, radii, spacing, TOUCH_MIN } from "../theme";
 import { REACTIONS, REACTIONS_FOR_KIND, type Deed, type ReactionKind } from "../types";
 import { useStore } from "../store";
+import { useReducedMotion } from "../useReducedMotion";
 
 /**
  * Appreciation, not a generic "Like".
@@ -77,11 +78,13 @@ function ReactionButton({
   kind: ReactionKind; label: string; count: number; mine: boolean;
   compact?: boolean; onPress: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const scale = React.useRef(new Animated.Value(1)).current;
   const lift = React.useRef(new Animated.Value(0)).current;
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    if (reduceMotion) { onPress(); return; }
     Animated.parallel([
       Animated.sequence([
         Animated.spring(scale, { toValue: 1.3, useNativeDriver: true, speed: 40, bounciness: 16 }),

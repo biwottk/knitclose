@@ -24,14 +24,27 @@ import { api, ApiError } from "../api";
  * credentials. Sign-up creates the account, the family circle, and the person row in
  * one transaction, so a new user lands in a working circle rather than a broken one.
  */
-export function SignInScreen({ onSignedIn }: { onSignedIn: (isNew: boolean) => void }) {
-  const [mode, setMode] = useState<"in" | "up">("in");
+export function SignInScreen({
+  onSignedIn, initialInviteToken,
+}: { onSignedIn: (isNew: boolean, invitationJoined?: boolean) => void; initialInviteToken?: string }) {
+  const [mode, setMode] = useState<"in" | "up">(initialInviteToken ? "up" : "in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [showPromise, setShowPromise] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invite, setInvite] = useState<{
+    familyName: string; inviterName: string; role: string; expiresAt: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!initialInviteToken) return;
+    setMode("up");
+    api.previewInvitation(initialInviteToken)
+      .then(setInvite)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "That invitation could not be opened."));
+  }, [initialInviteToken]);
 
   const submit = async () => {
     setError(null);
@@ -49,13 +62,14 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: (isNew: boolean) => v
     try {
       if (mode === "in") {
         await api.login(email.trim(), password);
-        onSignedIn(false);
+        onSignedIn(false, false);
       } else {
         await api.signup({
           email: email.trim(), password, displayName: displayName.trim(),
+          inviteToken: initialInviteToken,
         });
-        // A brand-new circle needs naming, so onboarding follows sign-up only.
-        onSignedIn(true);
+        // An invitation already names and joins the circle; only founders need naming.
+        onSignedIn(!initialInviteToken, !!initialInviteToken);
       }
     } catch (err) {
       setError(err instanceof ApiError
@@ -72,6 +86,20 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: (isNew: boolean) => v
         <Logo variant="lockup" size={104} />
         <AppText variant="body" center color={colors.onSurfaceVariant}>{APP_TAGLINE}</AppText>
       </View>
+
+      {invite ? (
+        <Card tone="mint" style={styles.invite}>
+          <View style={styles.inviteHead}>
+            <Icon name="people" size={20} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="label">Invitation to {invite.familyName}</AppText>
+              <AppText variant="small" color={colors.onPrimaryFixedVariant}>
+                From {invite.inviterName} · Create your account to join
+              </AppText>
+            </View>
+          </View>
+        </Card>
+      ) : null}
 
       <Card feature>
         <AppText variant="subtitle">
@@ -161,12 +189,12 @@ export function SignInScreen({ onSignedIn }: { onSignedIn: (isNew: boolean) => v
           far worse bug than a missing feature.
         */}
         <Button
-          title="Continue with Apple"
+          title="Preview · Continue with Apple"
           kind="outline"
           onPress={() => setError("Apple sign-in is not connected yet. Please use your email and password.")}
         />
         <Button
-          title="Continue with Google"
+          title="Preview · Continue with Google"
           kind="outline"
           onPress={() => setError("Google sign-in is not connected yet. Please use your email and password.")}
           style={{ marginTop: spacing.sm }}
@@ -232,6 +260,8 @@ function Field({ label, ...rest }: { label: string } & React.ComponentProps<type
 
 const styles = StyleSheet.create({
   brand: { marginTop: spacing.xl, marginBottom: spacing.lg, gap: spacing.md, alignItems: "center" },
+  invite: { gap: spacing.sm },
+  inviteHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   error: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm,
     backgroundColor: colors.errorContainer,

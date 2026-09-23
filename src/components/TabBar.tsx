@@ -1,11 +1,12 @@
 import React from "react";
-import { Animated, Easing, Platform, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "./Text";
 import { Icon, type IconName } from "./Icon";
 import { colors, fonts, radii, shadow, spacing } from "../theme";
+import { useReducedMotion } from "../useReducedMotion";
 
 /**
  * The bottom navigation bar.
@@ -43,12 +44,15 @@ export const TAB_BAR_HEIGHT = 64;
 
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const rail = Platform.OS === "android" && width >= 800;
 
   return (
     <View
       style={[
         styles.bar,
-        { height: TAB_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
+        rail ? styles.rail : { height: TAB_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
+        rail && { paddingTop: insets.top + spacing.md },
       ]}
     >
       {state.routes.map((route, index) => {
@@ -63,6 +67,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             label={label}
             icon={ICONS[route.name] ?? "hearth"}
             focused={focused}
+            rail={rail}
             onPress={() => {
               const event = navigation.emit({
                 type: "tabPress", target: route.key, canPreventDefault: true,
@@ -80,12 +85,14 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 function TabItem({
-  label, icon, focused, onPress,
-}: { label: string; icon: IconName; focused: boolean; onPress: () => void }) {
+  label, icon, focused, rail, onPress,
+}: { label: string; icon: IconName; focused: boolean; rail: boolean; onPress: () => void }) {
+  const reduceMotion = useReducedMotion();
   /** Drives both the pill's growth and the icon's lift from one value. */
   const anim = React.useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   React.useEffect(() => {
+    if (reduceMotion) { anim.setValue(focused ? 1 : 0); return; }
     Animated.spring(anim, {
       toValue: focused ? 1 : 0,
       useNativeDriver: true,
@@ -93,7 +100,7 @@ function TabItem({
       stiffness: 200,
       mass: 0.8,
     }).start();
-  }, [focused, anim]);
+  }, [focused, anim, reduceMotion]);
 
   const pillScale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
   const lift = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -1.5] });
@@ -104,7 +111,7 @@ function TabItem({
       accessibilityRole="tab"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      style={styles.item}
+      style={[styles.item, rail && styles.itemRail]}
     >
       <View style={styles.iconSlot}>
         {/* The mint pill grows behind the glyph rather than snapping on. */}
@@ -155,10 +162,15 @@ const styles = StyleSheet.create({
     // above scrolled content.
     ...(Platform.OS === "web" ? { zIndex: 10 } : null),
   },
+  rail: {
+    width: 96, height: "100%", flexDirection: "column", alignItems: "center",
+    paddingHorizontal: spacing.xs, gap: spacing.sm,
+  },
   item: {
     flex: 1, alignItems: "center", gap: spacing.xs,
     paddingTop: spacing.xs,
   },
+  itemRail: { flex: 0, width: 88, minHeight: 68, justifyContent: "center" },
   iconSlot: {
     width: 52, height: 30,
     alignItems: "center", justifyContent: "center",

@@ -35,11 +35,17 @@ import { useStore } from "../store";
  */
 export function AppHeader({
   section, onPressMic, onPressProfile, onPressCircle,
+  micAccessibilityLabel = "Open family chat to send a voice note",
+  showUnread = false,
 }: {
   section: string;
   onPressMic?: () => void;
   onPressProfile?: () => void;
   onPressCircle?: () => void;
+  /** Must describe what the handler actually does; navigation is not recording. */
+  micAccessibilityLabel?: string;
+  /** Only render a dot from a real unread count/state. */
+  showUnread?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { family, currentUser, personById } = useStore();
@@ -56,31 +62,40 @@ export function AppHeader({
               {section}
             </AppText>
 
-            <Pressable
-              onPress={onPressCircle}
-              accessibilityRole="button"
-              accessibilityLabel={"Family circle: " + family.name + ". Switch circle."}
-              hitSlop={10}
-              style={({ pressed }) => [styles.circleRow, pressed && styles.circlePressed]}
-            >
-              <AppText variant="small" color={colors.onSurfaceVariant} numberOfLines={1}>
+            {onPressCircle ? (
+              <Pressable
+                onPress={onPressCircle}
+                accessibilityRole="button"
+                accessibilityLabel={"Family circle: " + family.name + ". Switch circle."}
+                hitSlop={10}
+                style={({ pressed }) => [styles.circleRow, pressed && styles.circlePressed]}
+              >
+                <AppText variant="small" color={colors.onSurfaceVariant} numberOfLines={1}>
+                  {family.name}
+                </AppText>
+                <Icon name="chevronDown" size={14} color={colors.onSurfaceFaint} />
+              </Pressable>
+            ) : (
+              // One circle: identity and privacy context, not a fake switch.
+              <AppText variant="small" color={colors.onSurfaceVariant} numberOfLines={2}>
                 {family.name}
               </AppText>
-              <Icon name="chevronDown" size={14} color={colors.onSurfaceFaint} />
-            </Pressable>
+            )}
           </View>
         </View>
 
         <View style={styles.right}>
-          <Pressable
-            onPress={onPressMic}
-            accessibilityRole="button"
-            accessibilityLabel="Record a quick voice note"
-            hitSlop={6}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-          >
-            <Icon name="voice" size={21} color={colors.primary} />
-          </Pressable>
+          {onPressMic ? (
+            <Pressable
+              onPress={onPressMic}
+              accessibilityRole="button"
+              accessibilityLabel={micAccessibilityLabel}
+              hitSlop={6}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+            >
+              <Icon name="voice" size={21} color={colors.primary} />
+            </Pressable>
+          ) : null}
 
           <Pressable
             onPress={onPressProfile}
@@ -90,8 +105,8 @@ export function AppHeader({
             style={({ pressed }) => [styles.avatarButton, pressed && styles.pressed]}
           >
             <Avatar person={me} size={36} />
-            {/* Unread dot. Terracotta, ringed so it reads on any photo. */}
-            <View style={styles.dot} />
+            {/* A dot is system status, not decoration: render only from real state. */}
+            {showUnread ? <View style={styles.dot} /> : null}
           </Pressable>
         </View>
       </View>
@@ -114,7 +129,7 @@ const styles = StyleSheet.create({
   section: { flexShrink: 1 },
   circleRow: {
     flexDirection: "row", alignItems: "center", gap: spacing.xs,
-    alignSelf: "flex-start", minHeight: 20,
+    alignSelf: "flex-start", minHeight: TOUCH_MIN,
     paddingRight: spacing.xs, borderRadius: radii.sm,
   },
   circlePressed: { opacity: 0.6 },

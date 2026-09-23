@@ -149,9 +149,10 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
     );
     if (allowed.length === 0) return reply.code(404).send({ error: "thread not found" });
 
-    // The schema's CHECK requires text or audio; catch it here for a clear message.
-    if (!body.body?.trim() && !body.audioMediaId) {
-      return reply.code(400).send({ error: "a message needs text or a voice note" });
+    // Text, voice, OR a photograph. Quick Share must support the photo-only moment
+    // it advertises; requiring a caption turns “just share it” back into composition work.
+    if (!body.body?.trim() && !body.audioMediaId && !body.mediaIds?.length) {
+      return reply.code(400).send({ error: "a message needs text, a photograph, or a voice note" });
     }
 
     const messageId = newId("msg");
@@ -165,7 +166,10 @@ export async function chatRoutes(app: FastifyInstance): Promise<void> {
         [
           messageId, id, caller.familyId, caller.personId,
           author.rows[0]?.name ?? "A family member",
-          body.body?.trim() || null, body.audioMediaId ?? null,
+          // The original DB constraint predates message_media and accepts text/audio.
+          // Empty string is intentionally non-null for a photo-only message; response shaping
+          // omits it, and the attached media is inserted below in the same transaction.
+          body.body?.trim() || (body.mediaIds?.length ? "" : null), body.audioMediaId ?? null,
         ],
       );
       let pos = 0;

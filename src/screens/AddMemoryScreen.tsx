@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Image, Keyboard, Pressable, StyleSheet, TextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Screen } from "../components/Screen";
@@ -9,6 +9,8 @@ import { Card } from "../components/Card";
 import { Avatar } from "../components/Avatar";
 import { Icon, IconBadge, type IconName } from "../components/Icon";
 import { PrivacyBadge } from "../components/PrivacyBadge";
+import { FormActions } from "../components/FormActions";
+import { AudienceSelector } from "../components/AudienceSelector";
 import {
   colors, fonts, INPUT_MIN, motion, radii, spacing, TOUCH_MIN, type,
 } from "../theme";
@@ -105,9 +107,9 @@ export function AddMemoryScreen({
       currentPersonId={currentUser.personId}
       onBack={() => (initialKind ? onCancel() : setKind(null))}
       onSave={async (input) => {
+        // Throws on failure; ShortForm shows the reason and keeps the words on screen.
         const id = await actions.addDeed(input);
-        if (id) onDone(id);
-        return Boolean(id);
+        onDone(id);
       }}
     />
   );
@@ -127,22 +129,28 @@ function ShortForm({
   people: { id: string; name: string; isLiving: boolean; memorialised?: boolean }[];
   currentPersonId: string;
   onBack: () => void;
+  /** Resolves once the entry is saved; rejects with the reason it was not. */
   onSave: (input: {
-    kind: MemoryKind; title: string; whenText: string; story?: string;
-    personIds?: string[]; mediaIds?: string[]; audience?: Audience; mayResurface?: boolean;
-  }) => Promise<boolean>;
+    kind: MemoryKind; title: string; whenText: string; whereText?: string; story?: string;
+    personIds?: string[]; mediaIds?: string[]; audience?: Audience;
+    audiencePersonIds?: string[]; mayResurface?: boolean;
+  }) => Promise<void>;
 }) {
   const meta = memoryKind(kind);
   const { actions } = useStore();
 
   const [title, setTitle] = useState("");
   const [whenText, setWhenText] = useState("");
+  const [whereText, setWhereText] = useState("");
   const [story, setStory] = useState("");
   const [personIds, setPersonIds] = useState<string[]>([]);
-  const [photos, setPhotos] = useState<{ uri: string }[]>([]);
+  const [photos, setPhotos] = useState<{ uri: string; mimeType: string }[]>([]);
   const [audience, setAudience] = useState<Audience>(meta.adultsByDefault ? "adults" : "everyone");
+  const [audiencePersonIds, setAudiencePersonIds] = useState<string[]>([]);
   const [resurface, setResurface] = useState(meta.resurfaceByDefault);
   const [saving, setSaving] = useState(false);
+  /** The last failure, shown inline above the save button until the next attempt. */
+  const [error, setError] = useState<unknown>(null);
 
   /**
    * "In memory" only makes sense about someone who has gone, so the list is filtered
@@ -154,33 +162,37 @@ function ShortForm({
 
   const save = async () => {
     if (saving || !title.trim()) return;
+    // The keyboard has done its job; put it away so the person sees the result.
+    Keyboard.dismiss();
     setSaving(true);
+    setError(null);
     try {
       const mediaIds: string[] = [];
       for (const p of photos) {
-        const up = await actions.uploadMedia(p.uri, "image/jpeg");
-        if (!up) throw new Error("upload failed");
+        // The picker's own mime type, not an assumed JPEG: a PNG screenshot or a HEIC
+        // from an iPhone sent as "image/jpeg" is a lie the server has no way to check.
+        const up = await actions.uploadMedia(p.uri, p.mimeType);
         mediaIds.push(up.id);
       }
-      const ok = await onSave({
+      await onSave({
         kind,
         title: title.trim(),
         // "Undated" is honest: lore and memories often have no date, and demanding one is
         // what stops them being written down at all.
         whenText: whenText.trim() || "Undated",
+        whereText: whereText.trim() || undefined,
         story: story.trim() || undefined,
         personIds,
         mediaIds,
         audience,
+        audiencePersonIds,
         mayResurface: resurface,
       });
-      if (!ok) setSaving(false);
-    } catch {
+    } catch (err) {
+      // Inline, not an alert: an alert is a no-op on web and gone on a phone; this stays
+      // beside the button until the next try, and the form keeps every word.
       setSaving(false);
-      Alert.alert(
-        "We could not save this",
-        "Your words are still here. Please check your connection and try again.",
-      );
+      setError(err);
     }
   };
 
@@ -190,24 +202,27 @@ function ShortForm({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"], quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [...prev, { uri: result.assets[0].uri }]);
+    const asset = result.assets?.[0];
+    if (!result.canceled && asset) {
+      setPhotos((prev) => [...prev, { uri: asset.uri, mimeType: asset.mimeType ?? "image/jpeg" }]);
     }
   };
 
   return (
     <Screen
-      footer={
-        <>
-          <Button
-            title={saving ? "Keeping it safe..." : "Add to the archive"}
-            icon="check"
-            disabled={saving || !title.trim()}
-            onPress={save}
-          />
-          <Button title="Go back" kind="quiet" icon="chevronLeft" onPress={onBack} />
-        </>
-      }
+      footer={(keyboardVisible) => (
+        <FormActions
+          keyboardVisible={keyboardVisible}
+          error={error}
+          title={saving ? "Keeping it safe..." : "Add to the Family Journal"}
+          compactTitle={saving ? "Saving..." : "Save memory"}
+          disabled={saving || !title.trim()}
+          onPress={save}
+          secondaryTitle="Go back"
+          secondaryIcon="chevronLeft"
+          onSecondary={onBack}
+        />
+      )}
     >
       <View style={styles.head}>
         <View style={styles.kindBadgeRow}>
@@ -238,7 +253,10 @@ function ShortForm({
         onChangeText={setTitle}
         placeholder={meta.example}
         editable={!saving}
+        // Wraps a long title visually, but Return moves on rather than adding a line.
         multiline
+        submitBehavior="blurAndSubmit"
+        returnKeyType="next"
       />
 
       <Field
@@ -248,8 +266,19 @@ function ShortForm({
         onChangeText={setWhenText}
         // Fuzzy on purpose: "the nineties, mostly" is a real answer and a date picker
         // cannot express it. types.ts keeps whenText precisely so this is never lost.
-        placeholder={kind === "lore" ? "Nobody can agree" : "Summer of 1978, or last Tuesday"}
+        placeholder={kind === "lore" ? "Nobody can agree" : "Summer 2025, or last Tuesday"}
         editable={!saving}
+        returnKeyType="next"
+      />
+
+      <Field
+        label="Where was it?"
+        optional
+        value={whereText}
+        onChangeText={setWhereText}
+        placeholder="Amboseli, Nana's kitchen, near the old bridge"
+        editable={!saving}
+        returnKeyType="done"
       />
 
       <Field
@@ -318,37 +347,14 @@ function ShortForm({
         </View>
       </View>
 
-      {/*
-        Who can see it. Shown for every kind rather than hidden in an advanced section:
-        the audience is the privacy promise made concrete, and burying it is how somebody
-        ends up sharing a hard time with a nine-year-old.
-      */}
-      <View style={styles.section}>
-        <AppText variant="label">Who can see this?</AppText>
-        <View style={styles.people}>
-          {(["everyone", "adults"] as Audience[]).map((a) => (
-            <Pressable
-              key={a}
-              onPress={() => setAudience(a)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: audience === a }}
-              style={[styles.personChip, audience === a && styles.personChipOn]}
-            >
-              <Icon
-                name={a === "adults" ? "lock" : "people"}
-                size={14}
-                color={audience === a ? colors.onPrimary : colors.onSurfaceVariant}
-              />
-              <AppText
-                variant="labelSm"
-                color={audience === a ? colors.onPrimary : colors.onSurface}
-              >
-                {AUDIENCE_LABEL[a]}
-              </AppText>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      <AudienceSelector
+        value={audience}
+        recipientIds={audiencePersonIds}
+        onChange={(next, recipients) => {
+          setAudience(next);
+          setAudiencePersonIds(recipients);
+        }}
+      />
 
       {/*
         Resurfacing consent, offered ONLY for the kinds where it is a real question.
@@ -384,18 +390,44 @@ function ShortForm({
   );
 }
 
+/**
+ * A labelled input.
+ *
+ * The TALL variant is a paragraph field, so its Return key must insert a new line --
+ * which means Return cannot also close the keyboard. Without another way out, somebody
+ * finishing a long story is stuck behind the keyboard with no idea how to get to the
+ * save button (the footer now rides above the keyboard, but the way out should still be
+ * obvious). So while a tall field has focus, a small "Done" sits in its label row.
+ */
 function Field({
-  label, optional, tall, ...rest
+  label, optional, tall, onFocus, onBlur, ...rest
 }: {
   label: string; optional?: boolean; tall?: boolean;
 } & React.ComponentProps<typeof TextInput>) {
+  const [focused, setFocused] = useState(false);
   return (
     <View style={styles.section}>
-      <AppText variant="label">{label}{optional ? "  (optional)" : ""}</AppText>
+      <View style={styles.labelRow}>
+        <AppText variant="label" style={{ flex: 1 }}>{label}{optional ? "  (optional)" : ""}</AppText>
+        {tall && focused ? (
+          <Pressable
+            onPress={() => Keyboard.dismiss()}
+            accessibilityRole="button"
+            accessibilityLabel="Done typing"
+            hitSlop={8}
+            style={({ pressed }) => [styles.done, pressed && { opacity: 0.7 }]}
+          >
+            <Icon name="check" size={14} color={colors.primary} />
+            <AppText variant="labelSm" color={colors.primary}>Done</AppText>
+          </Pressable>
+        ) : null}
+      </View>
       <TextInput
         style={[styles.input, tall && styles.inputTall]}
         placeholderTextColor={colors.outline}
         accessibilityLabel={label}
+        onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+        onBlur={(e) => { setFocused(false); onBlur?.(e); }}
         {...rest}
       />
     </View>
@@ -418,6 +450,12 @@ const styles = StyleSheet.create({
   example: { fontFamily: fonts.serifItalic, marginTop: 2 },
 
   section: { gap: spacing.sm, marginTop: spacing.md },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, minHeight: 22 },
+  done: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: spacing.sm, paddingVertical: 2,
+    borderRadius: radii.pill, backgroundColor: colors.primaryFixed,
+  },
   input: {
     minHeight: INPUT_MIN,
     borderRadius: radii.inner,

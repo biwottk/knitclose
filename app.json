@@ -4,7 +4,7 @@
     "slug": "knitclose",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "scheme": "knitclose",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
@@ -38,7 +38,13 @@
         }
       ],
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Close Knit to record a family voice note. You will always review it before anything is shared."
+        }
+      ]
     ]
   }
 }

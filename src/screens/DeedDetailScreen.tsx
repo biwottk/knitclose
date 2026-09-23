@@ -9,6 +9,7 @@ import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { ReactionBar, REACTION_ICONS } from "../components/ReactionBar";
 import { PrivacyBadge } from "../components/PrivacyBadge";
+import { SaveError } from "../components/SaveError";
 import { colors, fonts, INPUT_MIN, radii, spacing, type }  from "../theme";
 import { MEMORY_KINDS, REACTIONS, REACTIONS_FOR_KIND, memoryKind, tagLabel } from "../types";
 import { useStore } from "../store";
@@ -27,6 +28,8 @@ export function DeedDetailScreen({
 }: { deedId: string; onOpenPerson: (id: string) => void }) {
   const { deeds, personById, commentsForDeed, actions } = useStore();
   const [draft, setDraft] = useState("");
+  const [commentBusy, setCommentBusy] = useState(false);
+  const [commentError, setCommentError] = useState<unknown>(null);
 
   const deed = deeds.find((d) => d.id === deedId);
   if (!deed) {
@@ -50,11 +53,17 @@ export function DeedDetailScreen({
 
   const postComment = async () => {
     const body = draft.trim();
-    if (!body) return;
-    // Cleared immediately: the field emptying is the acknowledgement that the comment
-    // was accepted, and the store reloads the thread once the server confirms.
-    setDraft("");
-    await actions.addComment(deed.id, body);
+    if (!body || commentBusy) return;
+    setCommentBusy(true); setCommentError(null);
+    try {
+      await actions.addComment(deed.id, body);
+      // Clear only after the server confirms. Until then the words remain editable.
+      setDraft("");
+    } catch (err) {
+      setCommentError(err);
+    } finally {
+      setCommentBusy(false);
+    }
   };
 
   const flag = () => {
@@ -90,6 +99,12 @@ export function DeedDetailScreen({
           {deed.whenText}
         </AppText>
       </View>
+      {deed.whereText ? (
+        <View style={styles.whenRow}>
+          <Icon name="location" size={14} color={colors.secondary} strokeWidth={2.2} />
+          <AppText variant="micro" color={colors.secondary}>{deed.whereText}</AppText>
+        </View>
+      ) : null}
       <AppText variant="hero">{deed.title}</AppText>
 
       <View style={styles.people}>
@@ -179,6 +194,10 @@ export function DeedDetailScreen({
         </Card>
       ))}
 
+      <SaveError
+        error={commentError}
+        title="We could not add this yet. Your words are still here."
+      />
       <TextInput
         style={styles.input}
         value={draft}
@@ -187,8 +206,22 @@ export function DeedDetailScreen({
         placeholder="Add to the story…"
         placeholderTextColor={colors.outline}
         accessibilityLabel="Add to the story"
+        editable={!commentBusy}
       />
-      <Button title="Share my memory" icon="send" onPress={postComment} disabled={!draft.trim()} />
+      <Button
+        title={commentBusy ? "Adding to the story…" : commentError ? "Try adding again" : "Share my memory"}
+        icon="send"
+        onPress={() => void postComment()}
+        disabled={!draft.trim() || commentBusy}
+      />
+      {commentError ? (
+        <Button
+          title="Discard this draft"
+          kind="quiet"
+          icon="trash"
+          onPress={() => { setDraft(""); setCommentError(null); }}
+        />
+      ) : null}
 
       <Button title="Ask an admin to review this" kind="quiet" icon="shield" onPress={flag} />
     </Screen>

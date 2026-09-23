@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Screen } from "../components/Screen";
 import { AppHeader } from "../components/AppHeader";
@@ -10,11 +10,12 @@ import { Button } from "../components/Button";
 import { Avatar, AvatarStack } from "../components/Avatar";
 import { Icon, IconBadge, type IconName } from "../components/Icon";
 import { SectionHeader } from "../components/SectionHeader";
-import { VoiceNote } from "../components/VoiceNote";
+import { DeedCard } from "../components/DeedCard";
 import { colors, radii, shadow, spacing } from "../theme";
 import { givenName, shortName } from "../names";
 import { useStore } from "../store";
-import type { FamilyEvent, Message, Person } from "../types";
+import { useReducedMotion } from "../useReducedMotion";
+import type { Deed, FamilyEvent, Message, Person } from "../types";
 
 /**
  * Warm verbs for a one-tap ping.
@@ -43,17 +44,22 @@ const NUDGE_ACTIONS = ["Send Tea", "Cheer", "Sunshine", "High-Five", "Thinking o
  * the app people actually open is the app they will trust with their history.
  */
 export function HearthScreen({
-  onOpenDeed, onAddDeed, onQuickShare, onOpenChat, onOpenCare, onOpenPerson, onOpenProfile,
+  onOpenDeed, onAddDeed, onOpenJournal, onQuickShare, onOpenChat, onOpenCare, onOpenPerson, onOpenProfile,
 }: {
   onOpenDeed: (deedId: string) => void;
   onAddDeed: () => void;
+  /** The permanent chronological home of every memory and great deed. */
+  onOpenJournal: () => void;
   onQuickShare: () => void;
-  onOpenChat: () => void;
+  onOpenChat: (threadId?: string) => void;
   onOpenCare: () => void;
   onOpenPerson: (personId: string) => void;
   onOpenProfile: () => void;
 }) {
   const store = useStore();
+  const { width, fontScale } = useWindowDimensions();
+  const compactLayout = width < 360 || fontScale >= 1.3;
+  const expandedLayout = width >= 700;
   const { currentUser, personById, upcomingEvents, onThisDay, careCircles, careProgress } = store;
 
   // Greeting addresses you directly, so the honorific would read as stiff.
@@ -61,7 +67,18 @@ export function HearthScreen({
   const radar = upcomingEvents(45).filter((x) => x.daysAway > 0)[0];
   const memory = onThisDay()[0];
   const circle = careCircles[0];
-  const quickShare = store.messages.find((m) => m.photos?.length);
+  const quickShare = [...store.messages]
+    .filter((m) => m.photos?.length)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const sortedStories = [...store.deeds]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const leadStory = sortedStories[0];
+  const moreStories = sortedStories.slice(1, 3);
+  const careState = circle ? careProgress(circle.id) : undefined;
+  const careOutstanding = careState ? careState.total - careState.done : 0;
+  const quickShareIsRecent = quickShare
+    ? Date.now() - new Date(quickShare.createdAt).getTime() < 7 * 86400000
+    : false;
 
   /**
    * A circle nobody has filled in yet.
@@ -71,38 +88,72 @@ export function HearthScreen({
    * is happening today -- because nothing is. So it shows what to do first instead.
    */
   const relatives = store.people.filter((p) => p.id !== currentUser.personId);
-  const isNewCircle = relatives.length === 0 && store.deeds.length === 0;
+  // A family graph can contain ancestors who never had accounts. Activation means another
+  // real person joined the app, not merely that a profile or story exists.
+  const needsCircleActivation = store.members.length <= 1;
 
   return (
     <View style={styles.root}>
       <AppHeader section="Hearth" onPressProfile={onOpenProfile} onPressMic={onQuickShare} />
 
-      <Screen insetTop={false}>
+      <Screen insetTop={false} contentStyle={expandedLayout && styles.expandedContent}>
         <Greeting
           name={firstName}
-          awake={store.people.filter((p) => p.isLiving).length - 1}
-          isNewCircle={isNewCircle}
+          relativeCount={relatives.length}
+          storyCount={store.deeds.length}
         />
 
-        {isNewCircle ? <FirstSteps onAddDeed={onAddDeed} onOpenProfile={onOpenProfile} /> : null}
+        {needsCircleActivation ? (
+          <CircleActivation
+            hasStory={store.deeds.length > 0}
+            onAddStory={onAddDeed}
+            onInvite={onOpenProfile}
+          />
+        ) : null}
 
-        <TwoSpeeds onQuickShare={onQuickShare} onAddDeed={onAddDeed} />
-
-        <ThinkingOfYou onOpenPerson={onOpenPerson} />
-
-        {radar ? <HeirloomRadar entry={radar} onOpenPerson={onOpenPerson} /> : null}
-
-        {circle ? (
+        {/* "What needs me today?" outranks archival recency. Open care and an approaching
+            family date are the only modules allowed above contribution. */}
+        {circle && careState && careOutstanding > 0 ? (
           <CareGlance
             personName={personById(circle.personId)?.name ?? "your relative"}
-            progress={careProgress(circle.id)}
+            progress={careState}
             onOpenCare={onOpenCare}
           />
         ) : null}
 
-        {quickShare ? <QuickShareCard message={quickShare} onOpenChat={onOpenChat} /> : null}
+        {radar ? <HeirloomRadar entry={radar} onOpenPerson={onOpenPerson} /> : null}
 
-        {memory ? (
+        <TwoSpeeds onQuickShare={onQuickShare} onAddDeed={onAddDeed} stacked={compactLayout} />
+
+        <FamilyJournalFeed
+          count={store.deeds.length}
+          entries={leadStory ? [leadStory] : []}
+          onOpenJournal={onOpenJournal}
+          onOpenDeed={onOpenDeed}
+        />
+
+        <ThinkingOfYou compact={compactLayout} />
+
+        {quickShare && quickShareIsRecent ? (
+          <QuickShareCard message={quickShare} onOpenChat={() => onOpenChat(quickShare.threadId)} />
+        ) : null}
+
+        {/* Covered care is reassurance, not urgency; it belongs after connection. */}
+        {circle && careState && careOutstanding === 0 ? (
+          <CareGlance
+            personName={personById(circle.personId)?.name ?? "your relative"}
+            progress={careState}
+            onOpenCare={onOpenCare}
+          />
+        ) : null}
+
+        <MoreStories
+          entries={moreStories}
+          onOpenJournal={onOpenJournal}
+          onOpenDeed={onOpenDeed}
+        />
+
+        {memory && memory.id !== leadStory?.id && !moreStories.some((d) => d.id === memory.id) ? (
           <OnThisDay
             deedId={memory.id}
             title={memory.title}
@@ -120,136 +171,158 @@ export function HearthScreen({
 // ---------------------------------------------------------------------------
 
 /**
- * Warm day greeting. The weather line is not decoration -- it is the cheapest
- * possible signal that this screen is about *today* and not about 1978.
+ * A truthful welcome. Date and time-of-day come from the device; every other sentence is
+ * derived from family data we actually hold. Hearth never pretends to know weather,
+ * presence, mood, or activity.
  */
 function Greeting({
-  name, awake, isNewCircle,
-}: { name: string; awake: number; isNewCircle: boolean }) {
+  name, relativeCount, storyCount,
+}: { name: string; relativeCount: number; storyCount: number }) {
   const now = new Date();
   const dateText = now
-    .toLocaleDateString("en-GB", { weekday: "long", month: "short", day: "numeric" })
+    .toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
     .replace(",", "");
-
   const hour = now.getHours();
   const partOfDay = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
 
-  /**
-   * The weather glyph tracks the actual part of day rather than always drawing a
-   * sun. A fixed sun icon beside the words "Good evening" is the sort of small
-   * incoherence that makes a screen feel generated instead of designed.
-   */
-  const weatherIcon: IconName =
-    hour < 8 ? "sunrise" : hour < 18 ? "sun" : hour < 21 ? "sunset" : "moon";
+  const status = relativeCount === 0
+    ? "Your family space is ready. Invite someone to share it with."
+    : storyCount === 0
+      ? `${relativeCount === 1 ? "One relative is" : `${relativeCount} relatives are`} here. Preserve the first family story together.`
+      : `${storyCount === 1 ? "One story is" : `${storyCount} stories are`} safe in your Family Journal.`;
 
   return (
     <View style={styles.greeting}>
-      <View style={styles.greetingTop}>
-        <AppText variant="micro" color={colors.secondary}>{dateText}</AppText>
-        <View style={styles.weather}>
-          <Icon name={weatherIcon} size={15} color={colors.tertiary} />
-          <AppText variant="micro">62°F Crisp {partOfDay}</AppText>
-        </View>
-      </View>
-
-      {/* The greeting is the largest thing on the screen and sits on the bare
-          canvas, not in a card. Boxing a salutation makes it read as a system
-          notice; letting it breathe is what makes the screen feel like a page. */}
-      <AppText variant="hero">Good {partOfDay},{"\n"}{name}</AppText>
-      {/*
-        The subtitle must describe the family that actually exists. The old copy was
-        fixture prose -- "porridge is simmering, and 6 family members are up and about"
-        -- which read as nonsense for a circle of one, and told a brand-new user that
-        the app was describing somebody else's household.
-      */}
-      <AppText variant="body" color={colors.onSurfaceVariant}>
-        {isNewCircle
-          ? "This is your family's hearth. It is completely empty, and completely private -- only people you invite will ever see what you keep here."
-          : `The house is quiet, and ${awake === 1 ? "one other person is" : `${awake} family members are`} up and about today.`}
-      </AppText>
+      <AppText variant="micro" color={colors.secondary}>{dateText}</AppText>
+      <AppText variant="hero">Good {partOfDay}, {name}</AppText>
+      <AppText variant="body" color={colors.onSurfaceVariant}>{status}</AppText>
     </View>
   );
 }
 
 /**
- * First steps, shown only while the circle is empty.
+ * Circle activation is not content activation.
  *
- * A brand-new user's problem is not "which button" -- it is not knowing what this app is
- * FOR. So this is deliberately a short ordered list of concrete acts, in the order that
- * makes the product work, rather than a generic welcome banner:
- *
- *   1. Invite somebody. A family app with one member is a diary; the archive only has
- *      value once there is somebody to keep it WITH, and inviting is also the thing
- *      most likely to be forgotten.
- *   2. Add the people. The tree is what every other screen hangs off -- a deed is
- *      *about* someone, a care circle is *for* someone.
- *   3. Record one thing. Any one thing, so the archive stops being hypothetical.
- *
- * It disappears the moment the circle is no longer empty, and it is never dismissible:
- * a dismissed checklist that cannot be recovered is worse than one that leaves on its
- * own when the work is done.
+ * This remains until a second ACCOUNT joins. Adding an ancestor to the tree or preserving
+ * one story must not dismiss it: a family app with one account is still a private diary.
+ * The next meaningful action is always the invitation, with one low-pressure alternative
+ * only while the journal is empty.
  */
-function FirstSteps({
-  onAddDeed, onOpenProfile,
-}: { onAddDeed: () => void; onOpenProfile: () => void }) {
+function CircleActivation({
+  hasStory, onAddStory, onInvite,
+}: {
+  hasStory: boolean;
+  onAddStory: () => void;
+  onInvite: () => void;
+}) {
   return (
     <Card tone="alert" feature style={styles.firstSteps}>
-      <SectionHeader title="Three things to set up" icon="sparkle" compact />
-
-      <AppText variant="body" color={colors.onSecondaryFixedVariant}>
-        Nothing here is shared with anyone outside the people you invite. Start
-        wherever you like -- most families start by inviting one person.
-      </AppText>
-
-      <View style={styles.stepList}>
-        <FirstStep
-          n={1}
-          title="Invite one family member"
-          body="Settings has a private invitation link. It only works once, and only for the person you send it to."
-        />
-        <FirstStep
-          n={2}
-          title="Add the people you want to remember"
-          body="Living or gone. The family tree is what stories and care are attached to."
-        />
-        <FirstStep
-          n={3}
-          title="Record one memory"
-          body="A photo and a sentence is enough. It does not have to be a whole life story."
-        />
+      <View style={styles.activationHead}>
+        <IconBadge name="people" size={40} tone="secondary" />
+        <View style={styles.activationCopy}>
+          <AppText variant="subtitle">
+            {hasStory ? "Your first story needs a reader" : "Make this a family space"}
+          </AppText>
+          <AppText variant="body" color={colors.onSecondaryFixedVariant}>
+            {hasStory
+              ? "It is safe in your Journal. Invite one person so you can remember it together."
+              : "Invite one person you trust. A family circle becomes useful the moment it is shared."}
+          </AppText>
+        </View>
       </View>
-
-      {/*
-        ONE primary action. Inviting is step 1 and lives behind the header avatar, which
-        is not discoverable on day one -- so the button goes straight there rather than
-        asking a new user to hunt for Settings.
-      */}
       <Button
         title="Invite a family member"
         icon="people"
         kind="secondary"
-        onPress={onOpenProfile}
+        onPress={onInvite}
         style={styles.firstStepsAction}
       />
-      <Button title="Record the first memory" kind="quiet" icon="deed" onPress={onAddDeed} />
+      {!hasStory ? (
+        <Button title="Or preserve the first story" kind="quiet" icon="journal" onPress={onAddStory} />
+      ) : null}
     </Card>
   );
 }
 
-function FirstStep({ n, title, body }: { n: number; title: string; body: string }) {
+/**
+ * The visible, useful address of saved memories.
+ *
+ * A title-only preview still made the Hearth an index: the person had to open the row
+ * before receiving any of the story. The home treatment now takes the useful cue from a
+ * social feed -- photo, excerpt, reactions and comment affordance are present here --
+ * while "View all" keeps the complete, chronological Family Journal one tap away.
+ */
+function FamilyJournalFeed({
+  count, entries, onOpenJournal, onOpenDeed,
+}: {
+  count: number;
+  entries: Deed[];
+  onOpenJournal: () => void;
+  onOpenDeed: (id: string) => void;
+}) {
   return (
-    <View style={styles.step}>
-      {/*
-        A number, not a checkmark or an empty circle: this is a sequence to work
-        through, and an unticked checkbox reads as a chore the app is nagging about.
-      */}
-      <View style={styles.stepNumber}>
-        <AppText variant="labelSm" color={colors.onSecondary}>{n}</AppText>
-      </View>
-      <View style={styles.stepText}>
-        <AppText variant="label">{title}</AppText>
-        <AppText variant="small" color={colors.onSecondaryFixedVariant}>{body}</AppText>
-      </View>
+    <View style={styles.journalFeed}>
+      <SectionHeader
+        title="Family Journal"
+        icon="journal"
+        actionLabel="View Journal"
+        onAction={onOpenJournal}
+      />
+      {entries.length > 0 ? (
+        entries.map((entry) => (
+          <DeedCard
+            key={entry.id}
+            deed={entry}
+            variant="hearth"
+            onPress={() => onOpenDeed(entry.id)}
+          />
+        ))
+      ) : (
+        <Card tone="paper">
+          <AppText variant="small" color={colors.onSurfaceVariant}>
+            Memories and great deeds you preserve will appear here, newest first.
+          </AppText>
+        </Card>
+      )}
+    </View>
+  );
+}
+
+/** Additional recent stories are compact continuation rows, not more detail screens. */
+function MoreStories({
+  entries, onOpenJournal, onOpenDeed,
+}: {
+  entries: Deed[];
+  onOpenJournal: () => void;
+  onOpenDeed: (id: string) => void;
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <View style={styles.moreStories}>
+      <SectionHeader title="More from the Journal" actionLabel="View Family Journal" onAction={onOpenJournal} />
+      <Card padded={false}>
+        {entries.map((entry, index) => (
+          <Pressable
+            key={entry.id}
+            onPress={() => onOpenDeed(entry.id)}
+            accessibilityRole="button"
+            accessibilityLabel={"Open story: " + entry.title}
+            style={({ pressed }) => [
+              styles.moreStoryRow,
+              index > 0 && styles.moreStoryDivider,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <View style={styles.moreStoryCopy}>
+              <AppText variant="label" numberOfLines={2}>{entry.title}</AppText>
+              <AppText variant="small" color={colors.onSurfaceVariant} numberOfLines={1}>
+                {entry.authorName} · {entry.whenText}
+              </AppText>
+            </View>
+            <Icon name="chevronRight" size={17} color={colors.onSurfaceFaint} />
+          </Pressable>
+        ))}
+      </Card>
     </View>
   );
 }
@@ -265,8 +338,8 @@ function FirstStep({ n, title, body }: { n: number; title: string; body: string 
  * where the thumb lands first.
  */
 function TwoSpeeds({
-  onQuickShare, onAddDeed,
-}: { onQuickShare: () => void; onAddDeed: () => void }) {
+  onQuickShare, onAddDeed, stacked,
+}: { onQuickShare: () => void; onAddDeed: () => void; stacked: boolean }) {
   /**
    * Laid out as two SIDE-BY-SIDE tiles rather than two stacked full-width rows.
    * Stacked rows imply a ranked list -- the top one is the real button and the
@@ -274,7 +347,7 @@ function TwoSpeeds({
    * exists to refuse. Side by side, the fork is visibly a fork.
    */
   return (
-    <View style={styles.speedRow}>
+    <View style={[styles.speedRow, stacked && styles.speedStack]}>
       <SpeedButton
         icon="camera"
         title="Quick Share"
@@ -284,8 +357,8 @@ function TwoSpeeds({
       />
       <SpeedButton
         icon="deed"
-        title="Record a Deed"
-        subtitle="Preserve an heirloom memory"
+        title="Add to Journal"
+        subtitle="Memories, lore & great deeds"
         onPress={onAddDeed}
         tone="heirloom"
       />
@@ -300,6 +373,7 @@ function SpeedButton({
   tone: "quick" | "heirloom";
 }) {
   const heirloom = tone === "heirloom";
+  const reduceMotion = useReducedMotion();
 
   return (
     <Pressable
@@ -312,7 +386,7 @@ function SpeedButton({
       style={({ pressed }) => [
         styles.speedButton,
         heirloom ? styles.speedHeirloom : styles.speedQuick,
-        pressed && { transform: [{ scale: 0.97 }] },
+        pressed && (reduceMotion ? { opacity: 0.88 } : { transform: [{ scale: 0.97 }] }),
       ]}
     >
       <IconBadge
@@ -347,8 +421,10 @@ function SpeedButton({
  * draft a message will happily tap a face. Once tapped the row confirms in place
  * and does not offer to send again, so it cannot become a nagging mechanic.
  */
-function ThinkingOfYou({ onOpenPerson }: { onOpenPerson: (id: string) => void }) {
+function ThinkingOfYou({ compact }: { compact: boolean }) {
   const { personById, actions, sentNudges, people, currentUser } = useStore();
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   /**
    * Who to offer, derived from the real family.
@@ -382,7 +458,12 @@ function ThinkingOfYou({ onOpenPerson }: { onOpenPerson: (id: string) => void })
         action="One tap, nothing to write"
       />
 
-      <View style={styles.nudgeRow}>
+      {error ? (
+        <AppText variant="small" color={colors.error} accessibilityLiveRegion="assertive">
+          {error}
+        </AppText>
+      ) : null}
+      <View style={[styles.nudgeRow, compact && styles.nudgeGrid]}>
         {nudgeTargets.map((n) => {
           const person = personById(n.personId);
           // Bereavement mode: never prompt anyone to ping someone who has died.
@@ -393,19 +474,30 @@ function ThinkingOfYou({ onOpenPerson }: { onOpenPerson: (id: string) => void })
           return (
             <Pressable
               key={n.personId}
-              onPress={() => {
+              onPress={async () => {
+                if (sent || pendingId) return;
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                void actions.sendNudge(n.personId, n.action);
+                setError(null);
+                setPendingId(n.personId);
+                try {
+                  await actions.sendNudge(n.personId, n.action);
+                } catch {
+                  setError("That warm ping did not send. Check your connection and try again.");
+                } finally {
+                  setPendingId(null);
+                }
               }}
-              onLongPress={() => onOpenPerson(n.personId)}
+              disabled={sent || !!pendingId}
               accessibilityRole="button"
               accessibilityState={{ selected: sent }}
               accessibilityLabel={
                 sent
                   ? "Already sent a warm ping to " + person.name
-                  : n.action + " to " + person.name + ". Long press to open their profile."
+                  : n.action + " to " + person.name
               }
-              style={({ pressed }) => [styles.nudge, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [
+                styles.nudge, compact && styles.nudgeWide, pressed && { opacity: 0.7 },
+              ]}
             >
               <View style={styles.nudgeFace}>
                 <Avatar person={person} size={56} ring={sent} ringColor={colors.primary} />
@@ -432,7 +524,7 @@ function ThinkingOfYou({ onOpenPerson }: { onOpenPerson: (id: string) => void })
                 numberOfLines={1}
                 style={styles.nudgeAction}
               >
-                {sent ? "Sent" : n.action}
+                {pendingId === n.personId ? "Sending…" : sent ? "Sent" : n.action}
               </AppText>
             </Pressable>
           );
@@ -543,7 +635,7 @@ function CareGlance({
         title={"Care Circle Routine"}
         compact
         icon="care"
-        action={progress.done + " of " + progress.total + " done"}
+        action={progress.done + "/" + progress.total + " done"}
       />
       <AppText variant="body" color={colors.onSurfaceVariant}>
         {settled
@@ -575,6 +667,19 @@ function CareGlance({
  * If quick shares were only reachable through the Chat tab, the archive would
  * dominate the app's surface area and the "two speeds" idea would be a lie.
  */
+function relativeTime(iso: string): string {
+  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
+  const abs = Math.abs(seconds);
+  const [value, unit]: [number, Intl.RelativeTimeFormatUnit] = abs < 60
+    ? [seconds, "second"]
+    : abs < 3600
+      ? [Math.round(seconds / 60), "minute"]
+      : abs < 86400
+        ? [Math.round(seconds / 3600), "hour"]
+        : [Math.round(seconds / 86400), "day"];
+  return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(value, unit);
+}
+
 function QuickShareCard({
   message, onOpenChat,
 }: { message: Message; onOpenChat: () => void }) {
@@ -595,7 +700,7 @@ function QuickShareCard({
         <View style={styles.quickWho}>
           <AppText variant="label">{message.authorName}</AppText>
           <AppText variant="small" color={colors.onSurfaceFaint}>
-            Shared {photos.length} photos · 28 mins ago
+            {photos.length === 1 ? "Shared a photo" : `Shared ${photos.length} photos`} · {relativeTime(message.createdAt)}
           </AppText>
         </View>
         {message.contextLabel ? (
@@ -626,7 +731,7 @@ function QuickShareCard({
           icon="heart"
           iconFilled
         />
-        <Chip label="Voice memo" icon="voice" />
+        {message.audio ? <Chip label="Voice memo" icon="voice" /> : null}
       </View>
     </Card>
   );
@@ -683,29 +788,18 @@ function OnThisDay({
         </View>
       </Pressable>
 
-      <View style={styles.otdVoice}>
-        <VoiceNote
-          audio={{ id: "otd_voice", kind: "audio", uri: "mock://voice/arthur-recipe", durationSec: 102 }}
-          label="Grandpa Arthur's Recipe Lore"
-          speed={false}
-        />
-      </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
+  expandedContent: { width: "100%", maxWidth: 720, alignSelf: "center" },
 
   greeting: { gap: spacing.xs, paddingTop: spacing.xs, paddingBottom: spacing.sm },
-  greetingTop: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  weather: { flexDirection: "row", alignItems: "center", gap: spacing.xs + 2 },
-
   /** Two equal tiles. `alignItems: stretch` keeps them the same height. */
   speedRow: { flexDirection: "row", gap: spacing.sm + 2, alignItems: "stretch" },
+  speedStack: { flexDirection: "column" },
   speedButton: {
     flex: 1, minWidth: 0,
     gap: spacing.sm + 2,
@@ -716,21 +810,24 @@ const styles = StyleSheet.create({
   speedHeirloom: { backgroundColor: colors.primary, ...shadow.primaryGlow },
   speedLabels: { gap: 2, minWidth: 0 },
 
+  journalFeed: { gap: spacing.md },
+  moreStories: { gap: spacing.sm },
+  moreStoryRow: {
+    minHeight: 68, flexDirection: "row", alignItems: "center", gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+  },
+  moreStoryDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  moreStoryCopy: { flex: 1, minWidth: 0, gap: 2 },
+
   nudges: { gap: spacing.md },
   firstSteps: { gap: spacing.md },
   firstStepsAction: { marginTop: spacing.xs },
-  stepList: { gap: spacing.md },
-  step: { flexDirection: "row", gap: spacing.sm + 4, alignItems: "flex-start" },
-  stepNumber: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: colors.secondary,
-    alignItems: "center", justifyContent: "center",
-    // Optical alignment with the label's cap height rather than its line box.
-    marginTop: 1,
-  },
-  stepText: { flex: 1, gap: 2 },
+  activationHead: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
+  activationCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   nudgeRow: { flexDirection: "row", justifyContent: "space-between", gap: spacing.sm },
-  nudge: { alignItems: "center", gap: spacing.xs, flex: 1, minWidth: 0 },
+  nudgeGrid: { flexWrap: "wrap", justifyContent: "flex-start" },
+  nudge:  { alignItems: "center", gap: spacing.xs, flex: 1, minWidth: 0 },
+  nudgeWide: { flexBasis: "47%", flexGrow: 1 },
   nudgeFace: { position: "relative" },
   nudgeAction: { fontSize: 13 },
   nudgeSent: {
@@ -742,7 +839,7 @@ const styles = StyleSheet.create({
   },
 
   radar: { gap: spacing.md },
-  radarTop: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm + 2 },
+  radarTop: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm + 2, flexWrap: "wrap" },
   radarHead: { flex: 1, gap: 2, minWidth: 0 },
   radarFooter: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -759,7 +856,7 @@ const styles = StyleSheet.create({
 
   quickHead: {
     flexDirection: "row", alignItems: "center", gap: spacing.sm + 2,
-    padding: spacing.md + 2, paddingBottom: spacing.sm,
+    padding: spacing.md + 2, paddingBottom: spacing.sm, flexWrap: "wrap",
   },
   quickWho: { flex: 1, gap: 1, minWidth: 0 },
   quickBody: { paddingHorizontal: spacing.md + 2, paddingBottom: spacing.sm + 2 },
@@ -781,5 +878,4 @@ const styles = StyleSheet.create({
   otdPhoto: { width: "100%", height: 220, backgroundColor: colors.surfaceContainer },
   otdBody: { padding: spacing.md + 2, gap: spacing.sm },
   otdStory: { color: colors.onSurfaceVariant },
-  otdVoice: { paddingHorizontal: spacing.md + 2, paddingBottom: spacing.md + 2 },
 });

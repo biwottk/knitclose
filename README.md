@@ -91,14 +91,18 @@ competitor is the family WhatsApp group, which wins on daily habit.
 
 | Tab | File | What it does |
 |---|---|---|
-| **Hearth** | `src/screens/HearthScreen.tsx` | The daily open. Greeting, **two speeds of posting**, one-tap "Thinking of You" pings, heirloom radar, care glance, On This Day |
+| **Hearth** | `src/screens/HearthScreen.tsx` | The daily open. Greeting, **two speeds of posting**, a **Family Journal** home feed with recent stories, photos, reactions and comments, one-tap "Thinking of You" pings, heirloom radar, care glance, On This Day |
 | **Chat** | `src/screens/ChatScreen.tsx` | Scoped threads, **hold-to-talk voice notes with transcription**, and *Promote to Heirloom Deed* |
 | **Care** | `src/screens/CareScreen.tsx` | Claimable care schedule, offline emergency card, doctor's notes, medication radar, meal train |
-| **Archive** | `src/screens/ArchiveScreen.tsx` | Recipe box with handwritten cards + voice, and **"Who is this?"** face tagging |
+| **Archive** | `src/screens/ArchiveScreen.tsx` | Five heirloom sections: **Recipe Box**, **Letter Box**, **Voices**, **Objects** (custody chains, and "lost" as a real state), and **"Who is this?"** face tagging |
 | **Kinship** | `src/screens/FamilyTreeScreen.tsx` | The family graph |
 
-Settings sits behind the header avatar; the full chronological journal
-(`FeedScreen`) is a pushed screen — a place you go looking, not the front door.
+Settings sits behind the header avatar. The full chronological **Family Journal**
+(`FeedScreen`) is a pushed reading screen. The Hearth shows one lead story with author,
+photo, excerpt, reactions and comments; verified care or event needs move above it, and two more
+stories continue compactly after the day's family activity. A permanent "View Journal" doorway
+opens the full chronology. Save confirmations also link straight to it, so a preserved memory
+always has a visible address.
 
 ### Six kinds of memory, not one
 
@@ -106,7 +110,9 @@ Settings sits behind the header avatar; the full chronological journal
 contents were *admirable* (the problem). So a cancer scare, a funeral, and the nickname
 nobody can explain never got written down — and the archive became a highlight reel.
 
-There are now six **memory kinds**, and each earns its place by changing a behaviour:
+There are now six **memory kinds**, and each earns its place by changing a behaviour.
+Every kind can record a fuzzy time ("Summer 2025") and a separate fuzzy place
+("Amboseli" or "Nana's kitchen"); neither requires false calendar or map precision:
 `memory` (the default), `greatDeed`, `milestone`, `hardTime`, `inMemory`, `lore`.
 
 **Reactions depend on the kind.** A hard time offers **Hold · Strength · Love** — never
@@ -131,8 +137,9 @@ They are orthogonal, and conflating them was the trap to avoid.
    only when a human confirms it.
 2. **Voice is the accessibility story.** Grandparents who will never type will
    happily talk. The microphone is one tap away on every screen, hold-to-talk is
-   *larger* than the text field, and every recording is transcribed into searchable
-   text — presented as an italic pull-quote so her words never read as our copy.
+   *larger* than the text field. Recording, review, upload, sending and playback are real;
+   existing transcripts are presented as italic pull-quotes so her words never read as our copy.
+   Automated transcription for newly recorded audio remains an explicit follow-on capability.
 3. **Make the gap visible.** In Care, an unclaimed slot is the loudest thing on
    screen with the only filled button in its row. The failure mode of family care
    isn't disagreement, it's diffusion of responsibility.
@@ -141,13 +148,13 @@ They are orthogonal, and conflating them was the trap to avoid.
 
 | Screen | File | Status |
 |---|---|---|
-| Sign up / Log in + privacy promise | `src/screens/SignInScreen.tsx` | UI done, auth not wired |
+| Sign up / Log in + privacy promise | `src/screens/SignInScreen.tsx` | ✅ real auth + invitation-aware signup |
 | Create / Join a Family Circle | `src/screens/OnboardingScreen.tsx` | ✅ |
 | The Family Journal (On This Day, prompts) | `src/screens/FeedScreen.tsx` | ✅ |
-| Add Deed story wizard (4 steps) | `src/screens/AddDeedScreen.tsx` | ✅ photo/video; audio pending |
+| Add Deed story wizard (4 steps) | `src/screens/AddDeedScreen.tsx` | ✅ photo, video and reviewed voice recording |
 | Deed detail + reactions + comments | `src/screens/DeedDetailScreen.tsx` | ✅ |
 | Profile ("digital monument") | `src/screens/ProfileScreen.tsx` | ✅ |
-| Settings + Invite Member | `src/screens/SettingsScreen.tsx` | ✅ share sheet; real tokens pending |
+| Settings + Invite Member | `src/screens/SettingsScreen.tsx` | ✅ secure single-use tokens, deep links, preview and redemption |
 
 The web "Welcome Kit" invitation page is a separate web surface — Sprint 3.
 
@@ -157,7 +164,7 @@ Rules and rationale in **`docs/design_system_2020s.md`** — read that before to
 UI. Original brand thinking in `docs/design.md`; tokens in `src/theme.ts`; comps in
 `design/`.
 
-- **Palette:** Forest Pine `#1A4230` (permanence), Terracotta `#C1542F` (today),
+- **Palette:** Forest Pine (permanence), accessible Terracotta (today),
   Warm Amber (gentle nudge) on warm porcelain `#FCF9F6`. The two brand hues are
   **sampled from the logo artwork itself**, so product and mark cannot drift apart.
   Colour is semantic, never decorative — and there is no tech-blue anywhere.
@@ -242,9 +249,9 @@ Heirloom PDF export, Family Premium paywall, AI Story Assistant, photo colorizat
 and "Famous Deeds" archive search are all post-V1. The code is structured so they
 drop in without a rewrite.
 
-Voice-note playback and recording are **presentational for now** — the UI, waveform
-and transcript states are real so they can be felt on a device, but no audio engine
-is wired up yet. Same for the shared calendar and expense splitting: the data model
+Voice-note recording, review, upload, sending, playback and speed are backed by Expo Audio.
+Automatic speech-to-text for new recordings is not yet wired; the UI only shows a transcript
+when one genuinely exists. The shared calendar and expense splitting remain planned; their data model
 in `src/types.ts` (`FamilyEvent` with RSVPs and claimable potluck items) is ready
 ahead of the screens.
 
@@ -257,6 +264,8 @@ memory, and a human always approves what enters the archive.
 
 ## Planning docs
 - `docs/backend.md` — **the backend: schema, security model, AWS migration path**
+- `docs/archive_contents.md` — what belongs in the Archive (and what does not: the document vault)
+- `docs/memory_kinds.md` — the six memory kinds and per-kind reactions
 - `docs/great_deeds_features.md` — full feature spec, incl. AI and Famous Deeds
 - `docs/design.md` — **the current design system ("Kinship & Hearth")**
 - `ideas.md` — the zoomed-out feature brainstorm this build works from
